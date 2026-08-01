@@ -127,6 +127,14 @@
     padding:2px 7px; white-space:nowrap;
   }
   .leaflet-tooltip.origin-label::before{ border-right-color:rgba(255,255,255,0.94); }
+
+  .popup-player-list{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:3px;}
+  .popup-player-link{
+    background:none;border:none;padding:2px 0;margin:0;font:inherit;font-size:12.5px;
+    color:var(--navy);text-align:left;cursor:pointer;text-decoration:underline;
+    text-decoration-color:var(--line);text-underline-offset:2px;
+  }
+  .popup-player-link:hover{color:#000;text-decoration-color:var(--navy);}
 </style>
 </head>
 <body>
@@ -344,6 +352,14 @@ function selectPlayer(idx){
   updateMap(p);
 }
 
+// used in overview ("show all") mode: updates the card only, leaves the overview map as-is (no zoom change)
+function updateCardOnly(idx){
+  selectEl.value = idx;
+  const p = PLAYERS[idx];
+  renderProfile(p);
+}
+window.updateCardOnly = updateCardOnly;
+
 function showAllOrigins(){
   clearMarkers();
   emptyState.style.display = 'flex';
@@ -354,20 +370,32 @@ function showAllOrigins(){
   // group ALL stops (high school, university, company team, indie league) by location+type,
   // so the overview map shows every color, not just high schools
   const groups = {};
-  PLAYERS.forEach(p => {
+  PLAYERS.forEach((p, idx) => {
     p.stops.forEach(origin => {
       if(!origin.coord) return;
       const key = origin.type + '|' + origin.coord[0].toFixed(3) + ',' + origin.coord[1].toFixed(3);
-      if(!groups[key]) groups[key] = { coord: origin.coord, type: origin.type, placeName: origin.name, names: [] };
-      groups[key].names.push(p.name);
+      if(!groups[key]) groups[key] = { coord: origin.coord, type: origin.type, placeName: origin.name, players: [] };
+      groups[key].players.push({ idx, name: p.name });
     });
   });
 
   Object.values(groups).forEach(g => {
     const color = TYPE_COLOR[g.type] || '#666';
-    const namesHTML = g.names.map(escapeHTML).join('<br>');
     const m = L.marker(g.coord, {icon: makeIcon(color)}).addTo(map);
-    m.bindPopup(`<b>${namesHTML}</b><br>${escapeHTML(g.type)}: ${escapeHTML(g.placeName)}`);
+
+    if(g.players.length === 1){
+      // single player at this location: clicking the pin updates the card directly
+      const only = g.players[0];
+      m.bindPopup(`<b>${escapeHTML(only.name)}</b><br>${escapeHTML(g.type)}: ${escapeHTML(g.placeName)}`);
+      m.on('click', () => updateCardOnly(only.idx));
+    } else {
+      // multiple players share this location: let the person pick which one from the popup
+      const listHTML = g.players.map(pl =>
+        `<li><button type="button" class="popup-player-link" onclick="updateCardOnly(${pl.idx})">${escapeHTML(pl.name)}</button></li>`
+      ).join('');
+      m.bindPopup(`<b>${escapeHTML(g.type)}: ${escapeHTML(g.placeName)}</b><ul class="popup-player-list">${listHTML}</ul>`);
+    }
+
     markers.push(m);
   });
 
