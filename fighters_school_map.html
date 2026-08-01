@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>出身校マップ | FIGHTERS</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Noto+Sans+JP:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#0F2142; --navy-deep:#081328; --navy-light:#1E3B66;
+    --gold:#F2A73B; --gold-bright:#FFD873;
+    --cream:#F8F4EA; --ink:#14181F; --muted:#6B7280; --line:#DCD5C2;
+    --c-hs:#2E7D32; --c-univ:#C0392B; --c-corp:#2563EB; --c-indie:#8E44AD;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--cream);color:var(--ink);font-family:'Noto Sans JP',sans-serif;}
+
+  .hero{
+    background:linear-gradient(160deg, var(--navy-deep), var(--navy) 60%, var(--navy-light));
+    color:#fff; padding:28px 20px 22px;
+  }
+  .hero-inner{max-width:1100px;margin:0 auto;}
+  .eyebrow{font-family:'Space Mono',monospace;letter-spacing:.22em;font-size:11px;color:var(--gold-bright);text-transform:uppercase;margin:0 0 8px;}
+  .hero h1{font-size:clamp(22px,4vw,30px);font-weight:900;margin:0 0 4px;}
+  .hero p{margin:0;color:rgba(255,255,255,0.7);font-size:13px;}
+
+  main{max-width:1100px;margin:0 auto;padding:22px 20px 60px;}
+
+  .selector-bar{
+    display:flex; gap:12px; align-items:center; flex-wrap:wrap;
+    background:#fff; border:1px solid var(--line); border-radius:14px;
+    padding:16px 18px; margin-bottom:20px;
+  }
+  .selector-bar label{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:.06em;}
+  select#playerSelect{
+    flex:1; min-width:220px;
+    font-family:'Noto Sans JP',sans-serif; font-size:15px; font-weight:700;
+    padding:10px 14px; border-radius:10px; border:1px solid var(--line);
+    background:var(--cream); color:var(--ink); appearance:none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--navy) 50%), linear-gradient(135deg, var(--navy) 50%, transparent 50%);
+    background-position: calc(100% - 20px) center, calc(100% - 15px) center;
+    background-size: 5px 5px, 5px 5px; background-repeat:no-repeat;
+  }
+
+  .layout{display:grid; grid-template-columns: 380px 1fr; gap:20px;}
+  @media (max-width: 860px){ .layout{grid-template-columns:1fr;} }
+
+  .card{
+    background:#fff; border:1px solid var(--line); border-radius:16px;
+    padding:22px; min-height:420px;
+  }
+  .empty-state{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    height:100%; min-height:380px; color:var(--muted); text-align:center; gap:10px;
+  }
+  .empty-state .big{font-size:40px;}
+  .empty-state p{margin:0;font-size:13px;}
+
+  .p-header{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+  .num-badge{
+    font-family:'Oswald',sans-serif; font-weight:700; font-size:30px; line-height:1;
+    color:var(--navy); background:linear-gradient(180deg, var(--gold-bright), var(--gold));
+    min-width:52px; height:52px; border-radius:10px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .p-name{font-size:19px;font-weight:700;margin:0;}
+  .p-furi{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);margin:2px 0 0;}
+
+  .info-table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  .info-table tr{border-top:1px dashed var(--line);}
+  .info-table tr:first-child{border-top:none;}
+  .info-table td{padding:9px 4px;vertical-align:top;}
+  .info-table td:first-child{
+    font-family:'Space Mono',monospace;font-size:10.5px;color:var(--gold);
+    width:88px; letter-spacing:.04em; padding-top:11px;
+  }
+  .info-table td:last-child{font-weight:500;line-height:1.6;}
+
+  .stops-list{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:6px;}
+  .stops-list li{display:flex;align-items:baseline;gap:8px;font-size:13px;}
+  .stop-tag{
+    font-family:'Space Mono',monospace;font-size:9.5px;color:#fff;
+    padding:2px 7px;border-radius:999px;flex-shrink:0;letter-spacing:.03em;
+  }
+  .tag-高校{background:var(--c-hs);}
+  .tag-大学{background:var(--c-univ);}
+  .tag-社会人{background:var(--c-corp);}
+  .tag-独立リーグ{background:var(--c-indie);}
+  .stop-link{
+    background:none;border:none;padding:0;margin:0;font:inherit;color:var(--ink);
+    text-align:left;cursor:pointer;text-decoration:underline;text-decoration-color:var(--line);
+    text-underline-offset:3px;
+  }
+  .stop-link:hover{color:var(--navy);text-decoration-color:var(--navy);}
+  .stop-plain{color:var(--muted);}
+  .stop-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;box-shadow:0 0 0 1px rgba(0,0,0,0.08);}
+
+  #map{width:100%; height:520px; border-radius:16px; border:1px solid var(--line); background:#e8e4d8;}
+  .map-legend{display:flex;gap:14px;margin-top:10px;font-family:'Space Mono',monospace;font-size:10.5px;color:var(--muted);flex-wrap:wrap;}
+  .map-legend span{display:inline-flex;align-items:center;gap:6px;}
+  .dot{width:10px;height:10px;border-radius:50%;display:inline-block;}
+  .dot.hs{background:var(--c-hs);}
+  .dot.univ{background:var(--c-univ);}
+  .dot.corp{background:var(--c-corp);}
+  .dot.indie{background:var(--c-indie);}
+
+  .no-map-note{
+    font-size:12px; color:var(--muted); background:var(--cream);
+    border:1px dashed var(--line); border-radius:10px; padding:10px 14px; margin-top:10px;
+  }
+
+  footer{text-align:center;padding:24px;font-family:'Space Mono',monospace;font-size:10.5px;color:var(--muted);}
+
+  @keyframes pinPulse{
+    0%{ box-shadow:0 0 0 0 rgba(15,33,66,0.55); }
+    70%{ box-shadow:0 0 0 14px rgba(15,33,66,0); }
+    100%{ box-shadow:0 0 0 0 rgba(15,33,66,0); }
+  }
+  .pin-highlight{ animation: pinPulse 1s ease-out 2; }
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-inner">
+    <p class="eyebrow">FIGHTERS ROSTER MAP</p>
+    <h1>出身校マップ</h1>
+    <p>背番号から選手を選ぶと、プロフィールと経歴上の各地点(高校・大学・社会人・独立リーグ)が表示されます。</p>
+  </div>
+</div>
+
+<main>
+  <div class="selector-bar">
+    <label for="playerSelect">選手を選択(背番号順)</label>
+    <select id="playerSelect"></select>
+  </div>
+
+  <div class="layout">
+    <div class="card" id="profileCard">
+      <div class="empty-state" id="emptyState">
+        <div class="big">⚾</div>
+        <p>選手を選択すると<br>プロフィールが表示されます<br><br>今は全選手の出身地を<br>地図上に表示しています</p>
+      </div>
+    </div>
+
+    <div>
+      <div id="map"></div>
+      <div class="map-legend">
+        <span><span class="dot hs"></span>高校</span>
+        <span><span class="dot univ"></span>大学</span>
+        <span><span class="dot corp"></span>社会人</span>
+        <span><span class="dot indie"></span>独立リーグ</span>
+        <span>※海外の学校・チームは国レベルの目安位置です</span>
+      </div>
+      <div class="no-map-note" id="mapNote" style="display:none;"></div>
+    </div>
+  </div>
+</main>
+
+<footer>出典: NPB.jp / 北海道日本ハムファイターズ公式サイト / ファン運営データサイトを参照し、事実情報のみ独自にまとめています。地図は OpenStreetMap を使用しています。位置は目安であり、統廃合・移転等により実際と異なる場合があります。</footer>
+
+<script>
+const PLAYERS = [{"number": "2", "position": "捕手", "name": "アリエル・マルティネス", "furigana": "ありえる まるてぃねす", "throwBat": "右投右打", "height": "190", "weight": "112", "birthdate": "1996-05-28", "career": "マニュエルファハルドキューバ国立体育大－中日", "draft": null, "stops": [{"type": "大学", "name": "マニュエルファハルドキューバ国立体育大(キューバ)", "coord": [21.521757, -77.781167]}]}, {"number": "3", "position": "捕手", "name": "郡司 裕也", "furigana": "ぐんじ ゆうや", "throwBat": "右投右打", "height": "180", "weight": "90", "birthdate": "1997-12-27", "career": "仙台育英高－慶應義塾大－中日", "draft": null, "stops": [{"type": "高校", "name": "仙台育英高", "coord": [38.284659, 140.985083]}, {"type": "大学", "name": "慶應義塾大", "coord": [35.548166, 139.647411]}]}, {"number": "4", "position": "内野手", "name": "上川畑 大悟", "furigana": "かみかわばた だいご", "throwBat": "右投左打", "height": "167", "weight": "73", "birthdate": "1997-01-12", "career": "倉敷商業高－日本大－NTT東日本", "draft": "2021年ドラフト9位", "stops": [{"type": "高校", "name": "倉敷商業高", "coord": [34.588568, 133.769851]}, {"type": "大学", "name": "日本大", "coord": [35.662048, 139.634098]}, {"type": "社会人", "name": "NTT東日本", "coord": [35.707812, 140.023847]}]}, {"number": "5", "position": "内野手", "name": "野村 佑希", "furigana": "のむら ゆうき", "throwBat": "右投右打", "height": "187", "weight": "95", "birthdate": "2000-06-26", "career": "花咲徳栄高", "draft": "2018年ドラフト2位", "stops": [{"type": "高校", "name": "花咲徳栄高", "coord": [36.105979, 139.62806]}]}, {"number": "6", "position": "内野手", "name": "ロドルフォ・カストロ", "furigana": "ろどるふぉ かすとろ", "throwBat": "右投右打", "height": "183", "weight": "92", "birthdate": "1999-03-21", "career": "ビタリナ.モルダン.デ.クルス校(ドミニカ共和国)", "draft": null, "stops": [{"type": "高校", "name": "ビタリナ.モルダン.デ.クルス校(ドミニカ共和国)", "coord": [18.735693, -70.162651]}]}, {"number": "7", "position": "外野手", "name": "西川 遥輝", "furigana": "にしかわ はるき", "throwBat": "右投左打", "height": "181", "weight": "82", "birthdate": "1992-04-16", "career": "智辯和歌山高－北海道日本ハム－東北楽天－東京ヤクルト", "draft": null, "stops": [{"type": "高校", "name": "智辯和歌山高", "coord": [34.173999, 135.211785]}]}, {"number": "8", "position": "外野手", "name": "淺間 大基", "furigana": "あさま だいき", "throwBat": "右投左打", "height": "183", "weight": "84", "birthdate": "1996-06-21", "career": "横浜高", "draft": "2014年ドラフト3位", "stops": [{"type": "高校", "name": "横浜高", "coord": [35.362613, 139.627566]}]}, {"number": "9", "position": "内野手", "name": "中島 卓也", "furigana": "なかしま たくや", "throwBat": "右投左打", "height": "178", "weight": "77", "birthdate": "1991-01-11", "career": "福岡工業高", "draft": "2008年ドラフト5位", "stops": [{"type": "高校", "name": "福岡工業高", "coord": [33.572343, 130.355188]}]}, {"number": "10", "position": "捕手", "name": "清水 優心", "furigana": "しみず ゆうし", "throwBat": "右投右打", "height": "185", "weight": "91", "birthdate": "1996-05-22", "career": "九州国際大付高", "draft": "2014年ドラフト2位", "stops": [{"type": "高校", "name": "九州国際大付高", "coord": [33.881167, 130.820765]}]}, {"number": "12", "position": "投手", "name": "矢澤 宏太", "furigana": "やざわ こうた", "throwBat": "左投左打", "height": "173", "weight": "72", "birthdate": "2000-08-02", "career": "藤嶺藤沢高－日本体育大", "draft": "2022年ドラフト1位", "stops": [{"type": "高校", "name": "藤嶺藤沢高", "coord": [35.348245, 139.487591]}, {"type": "大学", "name": "日本体育大", "coord": [35.621733, 139.649926]}]}, {"number": "13", "position": "投手", "name": "生田目 翼", "furigana": "なばため つばさ", "throwBat": "右投右打", "height": "176", "weight": "95", "birthdate": "1995-02-19", "career": "水戸工業高－流通経済大－日本通運", "draft": "2018年ドラフト3位", "stops": [{"type": "高校", "name": "水戸工業高", "coord": [36.347963, 140.468205]}, {"type": "大学", "name": "流通経済大", "coord": [35.91679, 140.189528]}, {"type": "社会人", "name": "日本通運", "coord": null}]}, {"number": "14", "position": "投手", "name": "加藤 貴之", "furigana": "かとう たかゆき", "throwBat": "左投左打", "height": "182", "weight": "93", "birthdate": "1992-06-03", "career": "拓殖大紅陵高－新日鉄住金かずさマジック", "draft": "2015年ドラフト2位", "stops": [{"type": "高校", "name": "拓殖大紅陵高", "coord": [35.363789, 139.928098]}, {"type": "社会人", "name": "新日鉄住金かずさマジック", "coord": [35.341607, 139.874535]}]}, {"number": "15", "position": "投手", "name": "北山 亘基", "furigana": "きたやま こうき", "throwBat": "右投右打", "height": "182", "weight": "87", "birthdate": "1999-04-10", "career": "京都成章高－京都産業大", "draft": "2021年ドラフト8位", "stops": [{"type": "高校", "name": "京都成章高", "coord": [34.981574, 135.653508]}, {"type": "大学", "name": "京都産業大", "coord": [35.071387, 135.75696]}]}, {"number": "16", "position": "投手", "name": "達 孝太", "furigana": "たつ こうた", "throwBat": "右投右打", "height": "194", "weight": "101", "birthdate": "2004-03-27", "career": "天理高", "draft": "2021年ドラフト1位", "stops": [{"type": "高校", "name": "天理高", "coord": [34.59545, 135.842639]}]}, {"number": "17", "position": "投手", "name": "伊藤 大海", "furigana": "いとう ひろみ", "throwBat": "右投左打", "height": "176", "weight": "85", "birthdate": "1997-08-31", "career": "駒澤大苫小牧高－駒澤大(中退)－苫小牧駒澤大", "draft": "2020年ドラフト1位", "stops": [{"type": "高校", "name": "駒澤大苫小牧高", "coord": [42.661391, 141.618629]}, {"type": "大学", "name": "駒澤大(中退)", "coord": [35.6465, 139.6512]}, {"type": "大学", "name": "苫小牧駒澤大", "coord": [42.661391, 141.618629]}]}, {"number": "18", "position": "投手", "name": "山﨑 福也", "furigana": "やまさき さちや", "throwBat": "左投左打", "height": "188", "weight": "99", "birthdate": "1992-09-09", "career": "日本大三高－明治大－オリックス", "draft": null, "stops": [{"type": "高校", "name": "日本大三高", "coord": [35.592328, 139.42086]}, {"type": "大学", "name": "明治大", "coord": [35.698545, 139.760385]}]}, {"number": "19", "position": "投手", "name": "玉井 大翔", "furigana": "たまい たいしょう", "throwBat": "右投右打", "height": "178", "weight": "80", "birthdate": "1992-06-16", "career": "旭川実業高－東京農業大北海道オホーツク－新日鉄住金かずさマジック", "draft": "2016年ドラフト8位", "stops": [{"type": "高校", "name": "旭川実業高", "coord": [43.815259, 142.366472]}, {"type": "大学", "name": "東京農業大学北海道オホーツクキャンパス", "coord": [43.967673, 144.232864]}, {"type": "社会人", "name": "新日鉄住金かずさマジック", "coord": [35.341607, 139.874535]}]}, {"number": "20", "position": "投手", "name": "上原 健太", "furigana": "うえはら けんた", "throwBat": "左投左打", "height": "191", "weight": "100", "birthdate": "1994-03-29", "career": "広陵高－明治大", "draft": "2015年ドラフト1位", "stops": [{"type": "高校", "name": "広陵高", "coord": [34.471582, 132.412851]}, {"type": "大学", "name": "明治大", "coord": [35.698545, 139.760385]}]}, {"number": "21", "position": "内野手", "name": "清宮 幸太郎", "furigana": "きよみや こうたろう", "throwBat": "右投左打", "height": "184", "weight": "95", "birthdate": "1999-05-25", "career": "早稲田実業高", "draft": "2017年ドラフト1位", "stops": [{"type": "高校", "name": "早稲田実業高", "coord": [35.70214, 139.484677]}]}, {"number": "24", "position": "投手", "name": "金村 尚真", "furigana": "かねむら しょうま", "throwBat": "右投右打", "height": "176", "weight": "89", "birthdate": "2000-08-29", "career": "岡山学芸館高－富士大", "draft": "2022年ドラフト2位", "stops": [{"type": "高校", "name": "岡山学芸館高", "coord": [34.659432, 134.032101]}, {"type": "大学", "name": "富士大", "coord": [39.2198, 141.135]}]}, {"number": "25", "position": "投手", "name": "宮西 尚生", "furigana": "みやにし なおき", "throwBat": "左投左打", "height": "180", "weight": "81", "birthdate": "1985-06-02", "career": "市立尼崎高－関西学院大", "draft": "2007年ドラフト3位", "stops": [{"type": "高校", "name": "市立尼崎高", "coord": [34.750519, 135.402039]}, {"type": "大学", "name": "関西学院大", "coord": [34.768439, 135.346775]}]}, {"number": "26", "position": "投手", "name": "田中 正義", "furigana": "たなか せいぎ", "throwBat": "右投右打", "height": "188", "weight": "96", "birthdate": "1994-07-19", "career": "創価高－創価大－福岡ソフトバンク", "draft": null, "stops": [{"type": "高校", "name": "創価高", "coord": [35.723661, 139.453668]}, {"type": "大学", "name": "創価大", "coord": [35.690812, 139.326934]}]}, {"number": "27", "position": "投手", "name": "大川 慈英", "furigana": "おおかわ じぇい", "throwBat": "右投左打", "height": "178", "weight": "70", "birthdate": "2003-10-28", "career": "常総学院高－明治大", "draft": "2025年ドラフト1位", "stops": [{"type": "高校", "name": "常総学院高", "coord": [36.057067, 140.16355]}, {"type": "大学", "name": "明治大", "coord": [35.698545, 139.760385]}]}, {"number": "28", "position": "投手", "name": "河野 竜生", "furigana": "かわの りゅうせい", "throwBat": "左投左打", "height": "175", "weight": "92", "birthdate": "1998-05-30", "career": "鳴門高－JFE西日本", "draft": "2019年ドラフト1位", "stops": [{"type": "高校", "name": "鳴門高", "coord": [34.178557, 134.601275]}, {"type": "社会人", "name": "JFE西日本", "coord": [34.513763, 133.721892]}]}, {"number": "29", "position": "投手", "name": "細野 晴希", "furigana": "ほその はるき", "throwBat": "左投左打", "height": "180", "weight": "88", "birthdate": "2002-02-26", "career": "東亜学園高－東洋大", "draft": "2023年ドラフト1位", "stops": [{"type": "高校", "name": "東亜学園高", "coord": [35.71643, 139.672744]}, {"type": "大学", "name": "東洋大", "coord": [35.722739, 139.750268]}]}, {"number": "30", "position": "投手", "name": "サウリン・ラオ", "furigana": "さうりん らお", "throwBat": "右投右打", "height": "188", "weight": "82", "birthdate": "1999-08-14", "career": "セントロスAPEC通信高(ドミニカ共和国)", "draft": null, "stops": [{"type": "高校", "name": "セントロスAPEC通信高(ドミニカ共和国)", "coord": [18.735693, -70.162651]}]}, {"number": "31", "position": "投手", "name": "柴田 獅子", "furigana": "しばた れお", "throwBat": "右投左打", "height": "187", "weight": "95", "birthdate": "2006-04-18", "career": "福岡大大濠高", "draft": "2024年ドラフト1位", "stops": [{"type": "高校", "name": "福岡大大濠高", "coord": [33.581427, 130.377925]}]}, {"number": "32", "position": "投手", "name": "藤田 琉生", "furigana": "ふじた りゅうせい", "throwBat": "左投左打", "height": "198", "weight": "107", "birthdate": "2006-11-17", "career": "東海大相模高", "draft": "2024年ドラフト2位", "stops": [{"type": "高校", "name": "東海大相模高", "coord": [35.511019, 139.429242]}]}, {"number": "33", "position": "捕手", "name": "進藤 勇也", "furigana": "しんとう ゆうや", "throwBat": "右投右打", "height": "182", "weight": "95", "birthdate": "2002-03-10", "career": "筑陽学園高－上武大", "draft": "2023年ドラフト2位", "stops": [{"type": "高校", "name": "筑陽学園高", "coord": [33.510229, 130.516996]}, {"type": "大学", "name": "上武大", "coord": [36.278734, 139.177888]}]}, {"number": "34", "position": "投手", "name": "堀 瑞輝", "furigana": "ほり みずき", "throwBat": "左投左打", "height": "177", "weight": "91", "birthdate": "1998-05-10", "career": "広島新庄高", "draft": "2016年ドラフト1位", "stops": [{"type": "高校", "name": "広島新庄高", "coord": [34.763632, 132.492208]}]}, {"number": "35", "position": "投手", "name": "浅利 太門", "furigana": "あさり たもん", "throwBat": "右投右打", "height": "186", "weight": "92", "birthdate": "2002-09-06", "career": "興国高－明治大", "draft": "2024年ドラフト3位", "stops": [{"type": "高校", "name": "興国高", "coord": [34.653008, 135.521644]}, {"type": "大学", "name": "明治大", "coord": [35.698545, 139.760385]}]}, {"number": "36", "position": "外野手", "name": "宮崎 一樹", "furigana": "みやざき かずき", "throwBat": "右投右打", "height": "184", "weight": "91", "birthdate": "2001-08-30", "career": "山梨学院高－山梨学院大", "draft": "2023年ドラフト3位", "stops": [{"type": "高校", "name": "山梨学院高", "coord": [35.661039, 138.597585]}, {"type": "大学", "name": "山梨学院大", "coord": [35.661039, 138.597585]}]}, {"number": "37", "position": "投手", "name": "古林 睿煬", "furigana": "ぐーりん るぇやん", "throwBat": "右投右打", "height": "184", "weight": "100", "birthdate": "2000-06-12", "career": "台湾・平鎮高－台湾プロ野球・統一", "draft": null, "stops": [{"type": "高校", "name": "台湾・平鎮高", "coord": [24.939725, 121.21896]}]}, {"number": "38", "position": "捕手", "name": "ライル・リン", "furigana": "らいる りん", "throwBat": "右投右打", "height": "185", "weight": "94", "birthdate": "1997-06-26", "career": "アリゾナ州立大", "draft": null, "stops": [{"type": "大学", "name": "アリゾナ州立大(アメリカ)", "coord": [33.422998, -111.927831]}]}, {"number": "39", "position": "内野手", "name": "有薗 直輝", "furigana": "ありぞの なおき", "throwBat": "右投右打", "height": "185", "weight": "104", "birthdate": "2003-05-21", "career": "千葉学芸高", "draft": "2021年ドラフト2位", "stops": [{"type": "高校", "name": "千葉学芸高", "coord": [35.574295, 140.372443]}]}, {"number": "40", "position": "投手", "name": "島本 浩也", "furigana": "しまもと ひろや", "throwBat": "左投左打", "height": "176", "weight": "73", "birthdate": "1993-02-14", "career": "福知山成美高－阪神", "draft": null, "stops": [{"type": "高校", "name": "福知山成美高", "coord": [35.284438, 135.133732]}]}, {"number": "41", "position": "投手", "name": "福谷 浩司", "furigana": "ふくたに こうじ", "throwBat": "右投右打", "height": "183", "weight": "98", "birthdate": "1991-01-09", "career": "横須賀高－慶應義塾大－中日", "draft": null, "stops": [{"type": "高校", "name": "横須賀高", "coord": [35.257007, 139.670254]}, {"type": "大学", "name": "慶應義塾大", "coord": [35.548166, 139.647411]}]}, {"number": "42", "position": "外野手", "name": "エドポロ ケイン", "furigana": "えどぽろ けいん", "throwBat": "右投右打", "height": "190", "weight": "102", "birthdate": "2003-07-02", "career": "日本航空高－大阪学院大", "draft": "2025年ドラフト2位", "stops": [{"type": "高校", "name": "日本航空高", "coord": [35.682262, 138.480716]}, {"type": "大学", "name": "大阪学院大", "coord": [34.773426, 135.542075]}]}, {"number": "43", "position": "内野手", "name": "水野 達稀", "furigana": "みずの たつき", "throwBat": "右投左打", "height": "171", "weight": "80", "birthdate": "2000-07-30", "career": "丸亀城西高－JR四国", "draft": "2021年ドラフト3位", "stops": [{"type": "高校", "name": "丸亀城西高", "coord": [34.27698, 133.792373]}, {"type": "社会人", "name": "JR四国", "coord": null}]}, {"number": "44", "position": "内野手", "name": "阪口 樂", "furigana": "さかぐち うた", "throwBat": "右投左打", "height": "187", "weight": "99", "birthdate": "2003-06-24", "career": "岐阜第一高", "draft": "2021年ドラフト4位", "stops": [{"type": "高校", "name": "岐阜第一高", "coord": [35.443312, 136.674892]}]}, {"number": "45", "position": "投手", "name": "福島 蓮", "furigana": "ふくしま れん", "throwBat": "右投右打", "height": "190", "weight": "81", "birthdate": "2003-04-25", "career": "八戸西高", "draft": "2021年育成ドラフト1位", "stops": [{"type": "高校", "name": "八戸西高", "coord": [40.512242, 141.423346]}]}, {"number": "46", "position": "投手", "name": "畔柳 亨丞", "furigana": "くろやなぎ きょうすけ", "throwBat": "右投右打", "height": "178", "weight": "92", "birthdate": "2003-05-03", "career": "中京大中京高", "draft": "2021年ドラフト5位", "stops": [{"type": "高校", "name": "中京大中京高", "coord": [35.146446, 136.954923]}]}, {"number": "47", "position": "投手", "name": "柳川 大晟", "furigana": "やながわ たいせい", "throwBat": "右投右打", "height": "191", "weight": "96", "birthdate": "2003-08-21", "career": "九州国際大付高", "draft": "2021年育成ドラフト3位", "stops": [{"type": "高校", "name": "九州国際大付高", "coord": [33.881167, 130.820765]}]}, {"number": "48", "position": "投手", "name": "齋藤 友貴哉", "furigana": "さいとう ゆきや", "throwBat": "右投左打", "height": "184", "weight": "92", "birthdate": "1995-01-05", "career": "山形中央高－桐蔭横浜大－Honda－阪神", "draft": null, "stops": [{"type": "高校", "name": "山形中央高", "coord": [38.237278, 140.335016]}, {"type": "大学", "name": "桐蔭横浜大", "coord": [35.566231, 139.518224]}, {"type": "社会人", "name": "Honda", "coord": [35.872652, 139.428039]}]}, {"number": "49", "position": "内野手", "name": "大塚 瑠晏", "furigana": "おおつか るあん", "throwBat": "右投左打", "height": "169", "weight": "69", "birthdate": "2003-10-26", "career": "東海大相模高－東海大", "draft": "2025年ドラフト3位", "stops": [{"type": "高校", "name": "東海大相模高", "coord": [35.511019, 139.429242]}, {"type": "大学", "name": "東海大", "coord": [35.365786, 139.27483]}]}, {"number": "50", "position": "外野手", "name": "五十幡 亮汰", "furigana": "いそばた りょうた", "throwBat": "右投左打", "height": "171", "weight": "67", "birthdate": "1998-11-27", "career": "佐野日本大高－中央大", "draft": "2020年ドラフト2位", "stops": [{"type": "高校", "name": "佐野日本大高", "coord": [36.355215, 139.555424]}, {"type": "大学", "name": "中央大", "coord": [35.641036, 139.404333]}]}, {"number": "51", "position": "内野手", "name": "半田 南十", "furigana": "はんだ みなと", "throwBat": "右投左打", "height": "176", "weight": "73", "birthdate": "2007-05-10", "career": "日本大藤沢高", "draft": "2025年ドラフト4位", "stops": [{"type": "高校", "name": "日本大藤沢高", "coord": [35.377663, 139.470039]}]}, {"number": "52", "position": "投手", "name": "池田 隆英", "furigana": "いけだ たかひで", "throwBat": "右投右打", "height": "181", "weight": "93", "birthdate": "1994-10-01", "career": "創価高－創価大－東北楽天", "draft": null, "stops": [{"type": "高校", "name": "創価高", "coord": [35.723661, 139.453668]}, {"type": "大学", "name": "創価大", "coord": [35.690812, 139.326934]}]}, {"number": "53", "position": "外野手", "name": "水谷 瞬", "furigana": "みずたに しゅん", "throwBat": "右投右打", "height": "193", "weight": "100", "birthdate": "2001-03-09", "career": "石見智翠館高－福岡ソフトバンク", "draft": null, "stops": [{"type": "高校", "name": "石見智翠館高", "coord": [35.022263, 132.235632]}]}, {"number": "54", "position": "内野手", "name": "山縣 秀", "furigana": "やまがた しゅう", "throwBat": "右投右打", "height": "176", "weight": "82", "birthdate": "2002-05-01", "career": "早稲田大学高等学院－早稲田大", "draft": "2024年ドラフト5位", "stops": [{"type": "高校", "name": "早稲田大学高等学院", "coord": [35.731331, 139.593338]}, {"type": "大学", "name": "早稲田大", "coord": [35.708733, 139.719649]}]}, {"number": "55", "position": "投手", "name": "菊地 大稀", "furigana": "きくち たいき", "throwBat": "右投左打", "height": "186", "weight": "97", "birthdate": "1999-06-02", "career": "佐渡高－桐蔭横浜大－巨人", "draft": null, "stops": [{"type": "高校", "name": "佐渡高", "coord": [38.006379, 138.323452]}, {"type": "大学", "name": "桐蔭横浜大", "coord": [35.566231, 139.518224]}]}, {"number": "56", "position": "内野手", "name": "細川 凌平", "furigana": "ほそかわ りょうへい", "throwBat": "右投左打", "height": "174", "weight": "81", "birthdate": "2002-04-25", "career": "智辯和歌山高", "draft": "2020年ドラフト4位", "stops": [{"type": "高校", "name": "智辯和歌山高", "coord": [34.173999, 135.211785]}]}, {"number": "57", "position": "捕手", "name": "藤森 海斗", "furigana": "ふじもり かいと", "throwBat": "右投左打", "height": "182", "weight": "73", "birthdate": "2007-06-27", "career": "明徳義塾高", "draft": "2025年ドラフト5位", "stops": [{"type": "高校", "name": "明徳義塾高", "coord": [33.42992, 133.454619]}]}, {"number": "58", "position": "内野手", "name": "奈良間 大己", "furigana": "ならま たいき", "throwBat": "右投右打", "height": "172", "weight": "75", "birthdate": "2000-05-08", "career": "常葉大菊川高－立正大", "draft": "2022年ドラフト5位", "stops": [{"type": "高校", "name": "常葉大菊川高", "coord": [34.756785, 138.08196]}, {"type": "大学", "name": "立正大", "coord": [35.620706, 139.723483]}]}, {"number": "60", "position": "捕手", "name": "吉田 賢吾", "furigana": "よしだ けんご", "throwBat": "右投右打", "height": "181", "weight": "94", "birthdate": "2001-01-18", "career": "横浜商科大高－桐蔭横浜大－福岡ソフトバンク", "draft": "2022年ドラフト6位", "stops": [{"type": "高校", "name": "横浜商科大高", "coord": [35.485084, 139.553319]}, {"type": "大学", "name": "桐蔭横浜大", "coord": [35.566231, 139.518224]}]}, {"number": "61", "position": "外野手", "name": "今川 優馬", "furigana": "いまがわ ゆうま", "throwBat": "右投右打", "height": "177", "weight": "93", "birthdate": "1997-01-25", "career": "東海大四高－東海大北海道－JFE東日本", "draft": "2020年ドラフト6位", "stops": [{"type": "高校", "name": "東海大四高", "coord": [42.991233, 141.319668]}, {"type": "大学", "name": "東海大北海道", "coord": [42.991233, 141.319668]}, {"type": "社会人", "name": "JFE東日本", "coord": [35.474018, 140.196366]}]}, {"number": "62", "position": "投手", "name": "清水 大暉", "furigana": "しみず だいき", "throwBat": "右投右打", "height": "195", "weight": "105", "birthdate": "2006-07-17", "career": "前橋商業高", "draft": "2024年ドラフト4位", "stops": [{"type": "高校", "name": "前橋商業高", "coord": [36.376519, 139.074256]}]}, {"number": "63", "position": "投手", "name": "山城 航太郎", "furigana": "やましろ こうたろう", "throwBat": "右投右打", "height": "183", "weight": "91", "birthdate": "2002-09-03", "career": "福岡大大濠高－法政大", "draft": "2024年ドラフト6位", "stops": [{"type": "高校", "name": "福岡大大濠高", "coord": [33.581427, 130.377925]}, {"type": "大学", "name": "法政大", "coord": [35.695812, 139.74161]}]}, {"number": "64", "position": "捕手", "name": "田宮 裕涼", "furigana": "たみや ゆあ", "throwBat": "右投左打", "height": "175", "weight": "84", "birthdate": "2000-06-13", "career": "成田高", "draft": "2018年ドラフト6位", "stops": [{"type": "高校", "name": "成田高", "coord": [35.785099, 140.322104]}]}, {"number": "65", "position": "内野手", "name": "明瀬 諒介", "furigana": "みょうせ りょうすけ", "throwBat": "右投右打", "height": "184", "weight": "96", "birthdate": "2005-08-25", "career": "鹿児島城西高", "draft": "2023年ドラフト4位", "stops": [{"type": "高校", "name": "鹿児島城西高", "coord": [31.626471, 130.41239]}]}, {"number": "66", "position": "外野手", "name": "万波 中正", "furigana": "まんなみ ちゅうせい", "throwBat": "右投右打", "height": "192", "weight": "102", "birthdate": "2000-04-07", "career": "横浜高", "draft": "2018年ドラフト4位", "stops": [{"type": "高校", "name": "横浜高", "coord": [35.362613, 139.627566]}]}, {"number": "67", "position": "投手", "name": "山本 拓実", "furigana": "やまもと たくみ", "throwBat": "右投右打", "height": "167", "weight": "84", "birthdate": "2000-01-31", "career": "市立西宮高－中日", "draft": null, "stops": [{"type": "高校", "name": "市立西宮高", "coord": [34.750519, 135.402039]}]}, {"number": "74", "position": "投手", "name": "有原 航平", "furigana": "ありはら こうへい", "throwBat": "右投右打", "height": "190", "weight": "100", "birthdate": "1992-08-11", "career": "広陵高－早稲田大－北海道日本ハム－MLB・テキサス－福岡ソフトバンク", "draft": null, "stops": [{"type": "高校", "name": "広陵高", "coord": [34.471582, 132.412851]}, {"type": "大学", "name": "早稲田大", "coord": [35.708733, 139.719649]}]}, {"number": "93", "position": "投手", "name": "松岡 洸希", "furigana": "まつおか こうき", "throwBat": "右投右打", "height": "180", "weight": "85", "birthdate": "2000-08-31", "career": "桶川西高－BCリーグ埼玉武蔵－埼玉西武", "draft": null, "stops": [{"type": "高校", "name": "桶川西高", "coord": [35.910976, 139.395618]}, {"type": "独立リーグ", "name": "BCリーグ埼玉武蔵", "coord": [35.991755, 139.593647]}]}, {"number": "94", "position": "投手", "name": "清宮 虎多朗", "furigana": "せいみや こたろう", "throwBat": "右投左打", "height": "190", "weight": "104", "birthdate": "2000-05-26", "career": "八千代松陰高－東北楽天", "draft": null, "stops": [{"type": "高校", "name": "八千代松陰高", "coord": [35.741663, 140.125193]}]}, {"number": "95", "position": "内野手", "name": "常谷 拓輝", "furigana": "つねや ひろき", "throwBat": "右投右打", "height": "180", "weight": "85", "birthdate": "2004-01-18", "career": "札幌静修高－北海学園大", "draft": "2025年育成ドラフト1位", "stops": [{"type": "高校", "name": "札幌静修高", "coord": [43.038402, 141.351964]}, {"type": "大学", "name": "北海学園大", "coord": [43.04635, 141.368583]}]}, {"number": "96", "position": "投手", "name": "孫 易磊", "furigana": "すん いーれい", "throwBat": "右投左打", "height": "183", "weight": "96", "birthdate": "2005-02-10", "career": "台湾・穀保家事商業高－台湾・中国文化大", "draft": null, "stops": [{"type": "高校", "name": "台湾・穀保家事商業高", "coord": [24.939725, 121.21896]}, {"type": "大学", "name": "台湾・中国文化大", "coord": [25.136536, 121.539273]}]}, {"number": "98", "position": "捕手", "name": "梅林 優貴", "furigana": "うめばやし ゆうき", "throwBat": "右投右打", "height": "171", "weight": "85", "birthdate": "1998-03-14", "career": "高陽東高－広島文化学園大", "draft": "2019年ドラフト6位", "stops": [{"type": "高校", "name": "高陽東高", "coord": [34.472165, 132.524461]}, {"type": "大学", "name": "広島文化学園大", "coord": [34.288117, 132.6379]}]}, {"number": "99", "position": "外野手", "name": "フランミル・レイエス", "furigana": "ふらんみる れいえす", "throwBat": "右投右打", "height": "196", "weight": "139", "birthdate": "1995-07-07", "career": "リセオ・アリーロ・パウリーノ高(ドミニカ共和国)", "draft": null, "stops": [{"type": "高校", "name": "リセオ・アリーロ・パウリーノ高(ドミニカ共和国)", "coord": [18.735693, -70.162651]}]}, {"number": "111", "position": "内野手", "name": "濵田 泰希", "furigana": "はまだ たいき", "throwBat": "右投右打", "height": "189", "weight": "90", "birthdate": "2005-11-28", "career": "京都国際高", "draft": "2023年育成ドラフト1位", "stops": [{"type": "高校", "name": "京都国際高", "coord": [34.975537, 135.780828]}]}, {"number": "113", "position": "投手", "name": "加藤 大和", "furigana": "かとう やまと", "throwBat": "左投左打", "height": "190", "weight": "90", "birthdate": "2006-01-12", "career": "帝京大可児高", "draft": "2023年育成ドラフト3位", "stops": [{"type": "高校", "name": "帝京大可児高", "coord": [35.39006, 137.085629]}]}, {"number": "114", "position": "投手", "name": "松本 遼大", "furigana": "まつもと りょうだい", "throwBat": "右投右打", "height": "188", "weight": "100", "birthdate": "2002-05-17", "career": "花巻東高", "draft": "2020年育成ドラフト1位", "stops": [{"type": "高校", "name": "花巻東高", "coord": [39.404998, 141.099356]}]}, {"number": "120", "position": "捕手", "name": "日渡 騰輝", "furigana": "ひわたり とうき", "throwBat": "右投左打", "height": "174", "weight": "90", "birthdate": "2004-09-20", "career": "霞ヶ浦高－中日", "draft": null, "stops": [{"type": "高校", "name": "霞ヶ浦高", "coord": [36.051719, 140.21713]}]}, {"number": "121", "position": "投手", "name": "川勝 空人", "furigana": "かわかつ そらと", "throwBat": "右投右打", "height": "180", "weight": "97", "birthdate": "2007-02-11", "career": "生光学園高", "draft": "2024年育成ドラフト1位", "stops": [{"type": "高校", "name": "生光学園高", "coord": [34.109403, 134.533854]}]}, {"number": "122", "position": "投手", "name": "澁谷 純希", "furigana": "しぶや じゅんき", "throwBat": "左投左打", "height": "182", "weight": "93", "birthdate": "2006-11-25", "career": "帯広農業高", "draft": "2024年育成ドラフト2位", "stops": [{"type": "高校", "name": "帯広農業高", "coord": [42.87746, 143.181953]}]}, {"number": "124", "position": "投手", "name": "横山 永遠", "furigana": "よこやま とわ", "throwBat": "右投左打", "height": "178", "weight": "80", "birthdate": "2003-04-16", "career": "八戸学院光星高－青森中央学院大", "draft": "2025年育成ドラフト2位", "stops": [{"type": "高校", "name": "八戸学院光星高", "coord": [40.513319, 141.535868]}, {"type": "大学", "name": "青森中央学院大", "coord": [40.783682, 140.761963]}]}, {"number": "125", "position": "外野手", "name": "藤田 大清", "furigana": "ふじた たいせい", "throwBat": "右投左打", "height": "187", "weight": "87", "birthdate": "2004-08-23", "career": "花咲徳栄高", "draft": "2022年育成ドラフト1位", "stops": [{"type": "高校", "name": "花咲徳栄高", "coord": [36.105979, 139.62806]}]}, {"number": "127", "position": "外野手", "name": "山口 アタル", "furigana": "やまぐち あたる", "throwBat": "右投右打", "height": "179", "weight": "95", "birthdate": "1999-05-28", "career": "ブリタニア高(カナダ)－コルビーコミュニティカレッジ－テキサス大タイラー校", "draft": "2022年育成ドラフト3位", "stops": [{"type": "高校", "name": "ブリタニア高(カナダ)", "coord": [49.275353, -123.07118]}, {"type": "大学", "name": "コルビーコミュニティカレッジ(アメリカ)", "coord": [39.377608, -101.052858]}, {"type": "大学", "name": "テキサス大タイラー校(アメリカ)", "coord": [32.315004, -95.251997]}]}, {"number": "140", "position": "投手", "name": "福田 俊", "furigana": "ふくだ すぐる", "throwBat": "左投左打", "height": "171", "weight": "74", "birthdate": "1996-12-14", "career": "横浜創学館高－星槎道都大", "draft": "2018年ドラフト7位", "stops": [{"type": "高校", "name": "横浜創学館高", "coord": [35.32263, 139.629024]}, {"type": "大学", "name": "星槎道都大", "coord": [42.979355, 141.542952]}]}, {"number": "154", "position": "投手", "name": "安西 叶翔", "furigana": "あんざい かなと", "throwBat": "右投右打", "height": "186", "weight": "101", "birthdate": "2004-11-13", "career": "常葉大菊川高", "draft": "2022年ドラフト4位", "stops": [{"type": "高校", "name": "常葉大菊川高", "coord": [34.756785, 138.08196]}]}, {"number": "159", "position": "投手", "name": "根本 悠楓", "furigana": "ねもと はるか", "throwBat": "左投左打", "height": "173", "weight": "80", "birthdate": "2003-03-31", "career": "苫小牧中央高", "draft": "2020年ドラフト5位", "stops": [{"type": "高校", "name": "苫小牧中央高", "coord": [42.625415, 141.562458]}]}, {"number": "168", "position": "外野手", "name": "星野 ひので", "furigana": "ほしの ひので", "throwBat": "右投右打", "height": "182", "weight": "88", "birthdate": "2005-04-18", "career": "前橋工業高", "draft": "2023年ドラフト5位", "stops": [{"type": "高校", "name": "前橋工業高", "coord": [36.389108, 139.118474]}]}];
+
+const TYPE_COLOR = {"高校":"#2E7D32","大学":"#C0392B","社会人":"#2563EB","独立リーグ":"#8E44AD"};
+
+const selectEl = document.getElementById('playerSelect');
+const profileCard = document.getElementById('profileCard');
+const emptyState = document.getElementById('emptyState');
+const mapNote = document.getElementById('mapNote');
+
+const defaultOpt = document.createElement('option');
+defaultOpt.value = '';
+defaultOpt.textContent = '---';
+selectEl.appendChild(defaultOpt);
+
+PLAYERS.forEach((p, idx) => {
+  const opt = document.createElement('option');
+  opt.value = idx;
+  opt.textContent = `${p.number}　${p.name}（${p.position}）`;
+  selectEl.appendChild(opt);
+});
+
+const map = L.map('map', { scrollWheelZoom: false }).setView([36.5, 138.0], 5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors',
+  maxZoom: 18
+}).addTo(map);
+
+let markers = [];
+let markerByStop = {};
+function clearMarkers(){ markers.forEach(m => map.removeLayer(m)); markers = []; markerByStop = {}; }
+
+function makeIcon(color, big){
+  const size = big ? 24 : 18;
+  return L.divIcon({
+    className: '',
+    html: `<div class="${big ? 'pin-highlight' : ''}" style="width:${size}px;height:${size}px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.4);"></div>`,
+    iconSize: [size,size], iconAnchor: [size/2,size/2]
+  });
+}
+
+function escapeHTML(str){
+  return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function formatBirthdate(iso){
+  if(!iso) return '—';
+  const [y,m,d] = iso.split('-');
+  return `${y}年${parseInt(m)}月${parseInt(d)}日`;
+}
+
+function renderProfile(p){
+  const stopsHTML = p.stops.map((s, i) => {
+    const label = escapeHTML(s.name);
+    const color = TYPE_COLOR[s.type] || '#666';
+    const inner = s.coord
+      ? `<button type="button" class="stop-link" data-stop="${i}">${label}</button>`
+      : `<span class="stop-plain">${label}</span>`;
+    return `<li><span class="stop-dot" style="background:${color}"></span><span class="stop-tag tag-${s.type}">${s.type}</span>${inner}</li>`;
+  }).join('');
+
+  profileCard.innerHTML = `
+    <div class="p-header">
+      <div class="num-badge">${escapeHTML(p.number)}</div>
+      <div>
+        <p class="p-name">${escapeHTML(p.name)}</p>
+        <p class="p-furi">${escapeHTML(p.furigana)}</p>
+      </div>
+    </div>
+    <table class="info-table">
+      <tr><td>ポジション</td><td>${escapeHTML(p.position)}</td></tr>
+      <tr><td>投打</td><td>${escapeHTML(p.throwBat)}</td></tr>
+      <tr><td>身長／体重</td><td>${escapeHTML(p.height)}cm／${escapeHTML(p.weight)}kg</td></tr>
+      <tr><td>生年月日</td><td>${formatBirthdate(p.birthdate)}</td></tr>
+      <tr><td>経歴</td><td><ul class="stops-list">${stopsHTML}</ul></td></tr>
+      <tr><td>ドラフト</td><td>${escapeHTML(p.draft || '—')}</td></tr>
+    </table>
+  `;
+
+  profileCard.querySelectorAll('.stop-link').forEach(btn => {
+    btn.addEventListener('click', () => highlightStop(parseInt(btn.dataset.stop)));
+  });
+}
+
+function updateMap(p){
+  clearMarkers();
+  const bounds = [];
+  const missing = [];
+
+  p.stops.forEach((s, i) => {
+    if(s.coord){
+      const m = L.marker(s.coord, {icon: makeIcon(TYPE_COLOR[s.type] || '#666')})
+        .addTo(map)
+        .bindPopup(`<b>${s.type}</b><br>${escapeHTML(s.name)}`);
+      markers.push(m);
+      markerByStop[i] = m;
+      bounds.push(s.coord);
+    } else {
+      missing.push(`${s.type}: ${s.name}`);
+    }
+  });
+
+  if(bounds.length >= 2){
+    map.fitBounds(bounds, {padding:[70,70], maxZoom: 9});
+  } else if(bounds.length === 1){
+    const isDomestic = bounds[0][1] > 120 && bounds[0][1] < 150 && bounds[0][0] > 24 && bounds[0][0] < 46;
+    map.setView(bounds[0], isDomestic ? 8 : 4);
+  } else {
+    map.setView([36.5, 138.0], 5);
+  }
+
+  if(missing.length > 0){
+    mapNote.style.display = 'block';
+    mapNote.textContent = `地図に表示できない地点があります（位置情報が未確認のため）: ${missing.join(' / ')}`;
+  } else {
+    mapNote.style.display = 'none';
+  }
+}
+
+function highlightStop(stopIndex){
+  const p = PLAYERS[parseInt(selectEl.value)];
+  const s = p.stops[stopIndex];
+  const m = markerByStop[stopIndex];
+  if(!m || !s || !s.coord) return;
+
+  const isDomestic = s.coord[1] > 120 && s.coord[1] < 150 && s.coord[0] > 24 && s.coord[0] < 46;
+  map.flyTo(s.coord, isDomestic ? 12 : 6, {duration: 0.6});
+  m.openPopup();
+
+  const bigIcon = makeIcon(TYPE_COLOR[s.type] || '#666', true);
+  m.setIcon(bigIcon);
+  setTimeout(() => {
+    m.setIcon(makeIcon(TYPE_COLOR[s.type] || '#666', false));
+  }, 2000);
+}
+
+function selectPlayer(idx){
+  selectEl.value = idx;
+  const p = PLAYERS[idx];
+  renderProfile(p);
+  updateMap(p);
+}
+
+function showAllOrigins(){
+  clearMarkers();
+  emptyState.style.display = 'flex';
+  profileCard.innerHTML = '';
+  profileCard.appendChild(emptyState);
+  mapNote.style.display = 'none';
+
+  PLAYERS.forEach((p, idx) => {
+    const origin = p.stops.find(s => s.coord);
+    if(!origin) return;
+    const color = TYPE_COLOR[origin.type] || '#666';
+    const m = L.marker(origin.coord, {icon: makeIcon(color)})
+      .addTo(map)
+      .bindPopup(`<b>${escapeHTML(p.name)}</b>（${escapeHTML(p.number)}）<br>${escapeHTML(origin.type)}: ${escapeHTML(origin.name)}`);
+    m.on('click', () => selectPlayer(idx));
+    markers.push(m);
+  });
+
+  map.setView([36.5, 138.0], 5);
+}
+
+selectEl.addEventListener('change', () => {
+  const val = selectEl.value;
+  if(val === ''){
+    showAllOrigins();
+    return;
+  }
+  selectPlayer(parseInt(val));
+});
+
+showAllOrigins();
+
+</script>
+
+</body>
+</html>
