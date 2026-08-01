@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>市町村カード</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#F6F1E7;
+    --card:#FFFDF8;
+    --ink:#1F3A54;
+    --ink-soft:#3E5A73;
+    --clay:#B5572E;
+    --clay-soft:#E7C7A9;
+    --teal:#4F6B5C;
+    --muted:#7A7264;
+    --line:#D9D0BE;
+    --tier0:#1F3A54;
+    --tier1:#4F6B5C;
+    --tier2:#B5572E;
+    --tier3:#8A7C63;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:'Noto Sans JP',sans-serif;
+    padding:32px 16px 60px;
+  }
+  .wrap{max-width:1080px;margin:0 auto;}
+  header{margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;}
+  .titlebox h1{
+    font-family:'Shippori Mincho',serif;
+    font-weight:700;
+    font-size:30px;
+    margin:0 0 6px;
+    letter-spacing:.04em;
+  }
+  .sub{color:var(--muted);font-size:14px;letter-spacing:.02em;}
+  .layout{display:grid;grid-template-columns:0.85fr 1.15fr;gap:20px;}
+  @media (max-width:760px){.layout{grid-template-columns:1fr;}}
+  .panel{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-radius:14px;
+    padding:18px;
+  }
+  .panel h2{
+    font-family:'Shippori Mincho',serif;
+    font-size:15px;
+    font-weight:500;
+    margin:0 0 10px;
+    color:var(--ink-soft);
+  }
+  .list{display:flex;flex-direction:column;gap:2px;max-height:520px;overflow-y:auto;}
+  .list-item{
+    display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;
+    cursor:pointer;font-size:13px;border:1px solid transparent;
+  }
+  .list-item:hover{background:var(--paper);}
+  .list-item.active{background:var(--clay-soft);border-color:var(--clay);}
+  .list-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+  .list-item .lname{font-weight:500;}
+  .list-item .lpop{margin-left:auto;color:var(--muted);font-size:11px;}
+  .list-item .lmap{
+    color:var(--ink-soft);text-decoration:none;flex-shrink:0;
+    width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    border:1px solid var(--line);font-size:12px;
+  }
+  .list-item .lmap:hover{border-color:var(--clay);color:var(--clay);}
+
+  .card-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+  .name{font-family:'Shippori Mincho',serif;font-size:24px;font-weight:700;}
+  .reading{font-size:12px;color:var(--muted);margin-top:-2px;margin-bottom:2px;}
+  .badge{
+    display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;
+    color:#fff;white-space:nowrap;
+  }
+  .pop{font-size:12px;color:var(--muted);margin-top:6px;}
+  .feature{
+    margin-top:16px;padding-top:14px;border-top:1px dashed var(--line);
+    font-size:14px;line-height:1.75;
+  }
+  .subhead{
+    font-size:12px;font-weight:500;color:var(--ink-soft);margin:16px 0 6px;
+    display:flex;align-items:center;gap:6px;
+  }
+  .taglist{display:flex;flex-wrap:wrap;gap:6px;}
+  .tag{
+    font-size:12px;padding:4px 10px;border-radius:999px;
+    background:var(--paper);border:1px solid var(--line);color:var(--ink);
+  }
+  .tag.person{background:var(--clay-soft);border-color:var(--clay);color:#4A1B0C;}
+  .empty-note{font-size:12px;color:var(--muted);}
+  .maps-link{
+    display:inline-block;margin-top:14px;font-size:12px;color:var(--ink-soft);
+    text-decoration:none;border-bottom:1px solid var(--ink-soft);
+  }
+  .map-embed{
+    width:100%;height:380px;border:0;border-radius:10px;margin-top:14px;
+    border:1px solid var(--line);
+  }
+  .counter{font-size:12px;color:var(--muted);margin-top:14px;}
+  .pref-select{
+    font-family:'Noto Sans JP',sans-serif;font-size:14px;
+    padding:8px 12px;border-radius:8px;border:1px solid var(--line);
+    background:var(--card);color:var(--ink);cursor:pointer;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="titlebox">
+      <h1 id="prefTitle">市町村カード</h1>
+    </div>
+    <select class="pref-select" id="prefSelect" onchange="selectPref(this.value)"></select>
+  </header>
+
+  <div class="layout">
+    <div class="panel">
+      <h2>市町一覧(タップで選択)</h2>
+      <div class="list" id="list"></div>
+      <div class="legend">
+        <span><i class="dotkey" style="background:#1F3A54"></i>10万人以上</span>
+        <span><i class="dotkey" style="background:#4F6B5C"></i>3万〜10万人</span>
+        <span><i class="dotkey" style="background:#B5572E"></i>1万〜3万人</span>
+        <span><i class="dotkey" style="background:#8A7C63"></i>1万人未満</span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="card-top">
+        <div>
+          <div class="reading" id="reading"></div>
+          <div class="name" id="name"></div>
+        </div>
+      </div>
+      <div class="pop" id="pop"></div>
+      <div class="feature" id="feature"></div>
+      <div class="subhead">有名観光地</div>
+      <div class="taglist" id="spots"></div>
+      <div class="subhead">出身有名人(正確かは確認してください)</div>
+      <div class="taglist" id="people"></div>
+      <iframe class="map-embed" id="mapEmbed" src="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      <a class="maps-link" id="mapsLink" href="#" target="_blank" rel="noopener">Google マップで実際の場所を見る →</a>
+      <div class="counter" id="counter"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const prefectures = {
+  "41": {
+    name: "佐賀県",
+    municipalities: [
+      {name:"佐賀市", reading:"さがし", lat:33.2635, lng:130.3009, pop:"約22.8万人", tier:0, feature:"佐賀城跡と大隈重信の生誕地。秋のバルーンフェスタは日本最大級の熱気球大会。", placeId:"ChIJCwZ7sQ3KQTURebUtb0mxQhI", spots:["佐賀城本丸歴史館","佐賀バルーンミュージアム","佐賀城下ひなまつり(春)"], people:["大隈重信(政治家)","石原辰義(スポーツ選手・スピードスケート)","優木まおみ(芸能人)"]},
+      {name:"唐津市", reading:"からつし", lat:33.4498, lng:129.9680, pop:"約11.2万人", tier:0, feature:"唐津くんち(祭り)と虹の松原、唐津城。「舞鶴城」の別名を持つ。", placeId:"ChIJuxZHgWN4ajURm2EDhkYEZ18", spots:["唐津城","虹の松原","旧高取邸"], people:["宮﨑敏郎(スポーツ選手・プロ野球)","おほしんたろう(芸能人)"]},
+      {name:"鳥栖市", reading:"とすし", lat:33.3781, lng:130.5050, pop:"約7.4万人", tier:1, feature:"九州の交通の要衝。サガン鳥栖の本拠地で、鳥栖プレミアム・アウトレットもある。", placeId:"ChIJQbqWjAWjQTURSG0aUZ3dfR8", spots:["鳥栖プレミアム・アウトレット","鳥栖スタジアム"], people:["緒方孝市(スポーツ選手・プロ野球)","権藤博(スポーツ選手・プロ野球)"]},
+      {name:"伊万里市", reading:"いまりし", lat:33.2647, lng:129.8805, pop:"約4.6万人", tier:1, feature:"伊万里焼(陶磁器)の産地。伊万里港から世界へ輸出された歴史を持つ。", placeId:"ChIJbRnMTWiEajUR6c84_cQ88Gw", spots:["大川内山(秘窯の里)","伊万里津(伊万里港跡)"], people:["高須洋介(スポーツ選手・プロ野球)"]},
+      {name:"武雄市", reading:"たけおし", lat:33.1948, lng:130.0216, pop:"約4.6万人", tier:1, feature:"武雄温泉が有名。朱塗りの楼門が温泉街のシンボル。", placeId:"ChIJh-K48lYoQDURfzPs6YEWDSk", spots:["武雄温泉楼門","武雄神社の大楠","武雄市図書館"], people:["福地寿樹(スポーツ選手・プロ野球)"]},
+      {name:"小城市", reading:"おぎし", lat:33.2737, lng:130.2167, pop:"約4.3万人", tier:1, feature:"小城羊羹(ようかん)の産地として全国的に有名。", placeId:"ChIJqXo2ysjMQTURywtcvsd5N1o", spots:["清水の滝","小城公園(桜の名所)"], people:["鴨打瑛二(スポーツ選手・プロ野球)"]},
+      {name:"神埼市", reading:"かんざきし", lat:33.3114, lng:130.3719, pop:"約3.0万人", tier:1, feature:"神埼そうめんの産地。吉野ヶ里遺跡の一部も市内にまたがる。", placeId:"ChIJVVVVVUC3QTURSqf4c3WB_f8", spots:["九年庵(紅葉の名所)","吉野ヶ里歴史公園(一部)"], people:["江頭2:50(芸能人)"]},
+      {name:"鹿島市", reading:"かしまし", lat:33.1040, lng:130.0985, pop:"約2.7万人", tier:2, feature:"祐徳稲荷神社(日本三大稲荷の一つ)。有明海の干潟ではムツゴロウ漁も。", placeId:"ChIJF5xe5KUlQDURF9uQlylgU-I", spots:["祐徳稲荷神社","肥前浜宿(酒蔵通り)"], people:["宮崎昭二(スポーツ選手・プロ野球)"]},
+      {name:"みやき町", reading:"みやきちょう", lat:33.3249, lng:130.4546, pop:"約2.5万人", tier:2, feature:"なし(梨)の産地として知られる町。", placeId:null, spots:["中原メロディーロード"], people:[]},
+      {name:"嬉野市", reading:"うれしのし", lat:33.1009, lng:129.9870, pop:"約2.4万人", tier:2, feature:"嬉野温泉(日本三大美肌の湯)と嬉野茶の産地。", placeId:"ChIJKTaYd1MnQDURi3hPtt73mcU", spots:["嬉野温泉","豊玉姫神社"], people:["三根由香理(スポーツ選手・バスケットボール)"]},
+      {name:"白石町", reading:"しろいしちょう", lat:33.1811, lng:130.1435, pop:"約2.0万人", tier:2, feature:"有明海の干拓地が広がる。レンコンや玉ねぎの産地。", placeId:"ChIJeQTJ5wQuQDURVS-EGfSIm5A", spots:["蓮の花畑(干拓地)"], people:[]},
+      {name:"有田町", reading:"ありたちょう", lat:33.2106, lng:129.8490, pop:"約1.9万人", tier:2, feature:"有田焼(磁器)発祥の地。陶磁器のまちとして世界的に知られる。", placeId:"ChIJ3b4BHt2aajURTxqUWTDqXw0", spots:["有田陶磁美術館","泉山磁石場","有田内山(伝統的建造物群)"], people:["迎祐一郎(スポーツ選手・プロ野球)"]},
+      {name:"基山町", reading:"きやまちょう", lat:33.4270, lng:130.5232, pop:"約1.7万人", tier:2, feature:"基山と基肄城跡(古代山城)がある。福岡都市圏のベッドタウン。", placeId:"ChIJdXJdU4WYQTURTYnpB59w-nE", spots:["基肄城跡","大興善寺(つつじ)"], people:["長野久義(スポーツ選手・プロ野球)","どぶろっく(芸能人)"]},
+      {name:"多久市", reading:"たくし", lat:33.2885, lng:130.1102, pop:"約1.6万人", tier:2, feature:"孔子を祀る多久聖廟がある、全国でも珍しい町。", placeId:"ChIJbYXKItrSQTURjNtvhm82qFc", spots:["多久聖廟"], people:["柿木蓮(スポーツ選手・プロ野球)","兵動秀治(スポーツ選手・プロ野球)"]},
+      {name:"吉野ヶ里町", reading:"よしのがりちょう", lat:33.3211, lng:130.3987, pop:"約1.6万人", tier:2, feature:"吉野ヶ里遺跡。弥生時代最大級の環壕集落で知られる。", placeId:"ChIJyd372QW6QTUR-o69wKXOANo", spots:["吉野ヶ里歴史公園"], people:["大江海透(スポーツ選手・プロ野球)"]},
+      {name:"上峰町", reading:"かみみねちょう", lat:33.3197, lng:130.4262, pop:"約9,500人", tier:3, feature:"九州で最も面積が小さい町。", placeId:"ChIJ6cypqma6QTURQ9MJklRWze8", spots:[], people:[]},
+      {name:"江北町", reading:"こうほくちょう", lat:33.2205, lng:130.1571, pop:"約9,300人", tier:3, feature:"長崎自動車道のジャンクションがある交通の要衝。", placeId:"ChIJK47L8mIyQDUROtdCsrNfMCM", spots:[], people:["源五郎丸洋(スポーツ選手・プロ野球)"]},
+      {name:"太良町", reading:"たらちょう", lat:33.0194, lng:130.1792, pop:"約7,700人", tier:3, feature:"竹崎カニで有名。有明海と多良岳に囲まれた町。", placeId:"ChIJebjwZIQ8QDURTFc9iEJ_qFU", spots:["竹崎観光センター","大魚神社の海中鳥居"], people:[]},
+      {name:"大町町", reading:"おおまちちょう", lat:33.2137, lng:130.1161, pop:"約5,700人", tier:3, feature:"かつて炭鉱で栄えた歴史を持つ町。", placeId:"ChIJcXDZUyItQDURdOxY1oSUEeg", spots:[], people:[]},
+      {name:"玄海町", reading:"げんかいちょう", lat:33.4723, lng:129.8749, pop:"約5,500人", tier:3, feature:"玄海原子力発電所がある町。", placeId:"ChIJPQnt37l7ajURwkttlzzKaxY", spots:["玄海エネルギーパーク"], people:["大原淳也(スポーツ選手・プロ野球)"]},
+    ]
+  },
+  "40": {
+    name: "福岡県",
+    municipalities: [
+      {name:"福岡市東区", reading:"ふくおかしひがしく", lat:33.6178, lng:130.4173, pop:"約32.0万人", tier:0, feature:"志賀島(金印出土地)や海の中道海浜公園がある区。", placeId:"ChIJL_UcxySOQTURHViaOpeB4rM", spots:["海の中道海浜公園","志賀島"], people:[]},
+      {name:"福岡市博多区", reading:"ふくおかしはかたく", lat:33.5908, lng:130.4143, pop:"約25.7万人", tier:0, feature:"博多駅と博多祇園山笠で知られる商業の中心地。", placeId:"ChIJK1Kt8UKRQTURA37cLa-02wU", spots:["博多駅","櫛田神社(博多祇園山笠)","キャナルシティ博多"], people:["武田鉄矢(芸能人・歌手/俳優)"]},
+      {name:"福岡市中央区", reading:"ふくおかしちゅうおうく", lat:33.5893, lng:130.3929, pop:"約20.7万人", tier:0, feature:"天神・大濠公園があるビジネス・繁華街の中心。", placeId:"ChIJF2SttoeRQTURb7hT3Jphi5s", spots:["大濠公園","福岡タワー","天神"], people:[]},
+      {name:"福岡市南区", reading:"ふくおかしみなみく", lat:33.5615, lng:130.4264, pop:"約25.7万人", tier:0, feature:"住宅地が中心の福岡市最大級の人口を持つ区。", placeId:"ChIJa7RlhgORQTURy48vxd7kvx8", spots:[], people:["タモリ(芸能人・司会者)"]},
+      {name:"福岡市城南区", reading:"ふくおかしじょうなんく", lat:33.5756, lng:130.3699, pop:"約13.1万人", tier:0, feature:"福岡大学がある文教地区。", placeId:"ChIJTZGXV7-TQTUR7hDm0H2tcjE", spots:[], people:[]},
+      {name:"福岡市早良区", reading:"ふくおかしさわらく", lat:33.5819, lng:130.3484, pop:"約21.9万人", tier:0, feature:"油山など自然も多く、住宅地が広がる区。", placeId:"ChIJUYW2jAqTQTURt5GLUsQW1sk", spots:["油山"], people:[]},
+      {name:"福岡市西区", reading:"ふくおかしにしく", lat:33.5826, lng:130.3230, pop:"約21.3万人", tier:0, feature:"糸島に隣接し、海沿いのマリンピア福岡がある区。", placeId:"ChIJtaGkYUSTQTURnRSQYP0VBuM", spots:["能古島"], people:[]},
+      {name:"北九州市門司区", reading:"きたきゅうしゅうしもじく", lat:33.9412, lng:130.9596, pop:"約8.9万人", tier:1, feature:"門司港レトロ地区で知られる関門海峡沿いの区。", placeId:"ChIJh_PmbSeWQzURPPcqeSzGqUc", spots:["門司港レトロ"], people:[]},
+      {name:"北九州市若松区", reading:"きたきゅうしゅうしわかまつく", lat:33.9054, lng:130.8112, pop:"約7.8万人", tier:1, feature:"若戸大橋で知られるかつての石炭積出港。", placeId:"ChIJVYGySAm4QzURHG-76g_nBp0", spots:["若戸大橋"], people:[]},
+      {name:"北九州市戸畑区", reading:"きたきゅうしゅうしとばたく", lat:33.8936, lng:130.8297, pop:"約5.4万人", tier:1, feature:"戸畑祇園大山笠で知られる区。", placeId:"ChIJMXudeIfHQzUR75_qeCZ90j0", spots:["戸畑祇園大山笠"], people:[]},
+      {name:"北九州市小倉北区", reading:"きたきゅうしゅうしこくらきたく", lat:33.8806, lng:130.8738, pop:"約17.2万人", tier:0, feature:"小倉城と繁華街を擁する北九州市の中心区。", placeId:"ChIJdxS_86u4QzUR2JaykcTqOFs", spots:["小倉城"], people:[]},
+      {name:"北九州市小倉南区", reading:"きたきゅうしゅうしこくらみなみく", lat:33.8465, lng:130.8848, pop:"約19.2万人", tier:0, feature:"平尾台のカルスト台地で知られる区。", placeId:"ChIJJSzg-c7AQzURFnp8Jwe4wqc", spots:["平尾台"], people:[]},
+      {name:"北九州市八幡東区", reading:"きたきゅうしゅうしやはたひがしく", lat:33.8636, lng:130.8118, pop:"約6.3万人", tier:1, feature:"かつての官営八幡製鐵所発祥の地。", placeId:"ChIJd__nVjPGQzURr7Shxz3bl-k", spots:["東田第一高炉(世界遺産関連施設)"], people:[]},
+      {name:"北九州市八幡西区", reading:"きたきゅうしゅうしやはたにしく", lat:33.8665, lng:130.7652, pop:"約24.5万人", tier:0, feature:"北九州市7区の中で最大の人口を持つ区。", placeId:"ChIJAQIbtt7IQzURWAu8THD8oQI", spots:[], people:[]},
+      {name:"久留米市", reading:"くるめし", lat:33.3193, lng:130.5083, pop:"約30.3万人", tier:0, feature:"久留米ラーメンと久留米絣で知られる筑後地方の中心都市。", placeId:"ChIJ-xil7fmkQTURaXqXvUeipxY", spots:["石橋文化センター"], people:["松田聖子(芸能人・歌手)"]},
+      {name:"大牟田市", reading:"おおむたし", lat:33.0302, lng:130.4460, pop:"約10.7万人", tier:0, feature:"かつて三池炭鉱で栄えた工業都市。", placeId:"ChIJVVUF-rNPQDURWD6086X0hUM", spots:["三池炭鉱宮原坑(世界遺産)"], people:[]},
+      {name:"飯塚市", reading:"いいづかし", lat:33.6466, lng:130.6911, pop:"約12.5万人", tier:0, feature:"筑豊地方の中心都市。", placeId:"ChIJtVGT4SN-QTURE3dto4dSbaM", spots:["嘉穂劇場"], people:["麻生太郎(政治家・元内閣総理大臣)"]},
+      {name:"田川市", reading:"たがわし", lat:33.6374, lng:130.8060, pop:"約4.4万人", tier:1, feature:"炭鉱の歴史で知られる筑豊地方の都市。", placeId:"ChIJEfHDDS7YQzURB4YWu0_4LEI", spots:["石炭記念公園"], people:[]},
+      {name:"柳川市", reading:"やながわし", lat:33.1631, lng:130.4057, pop:"約6.2万人", tier:1, feature:"掘割(水路)を舟でめぐる川下りで有名。", placeId:"ChIJySesqkyzQTURSm8-XhM0hRw", spots:["柳川川下り"], people:[]},
+      {name:"八女市", reading:"やめし", lat:33.2125, lng:130.5581, pop:"約5.9万人", tier:1, feature:"八女茶と提灯の産地。", placeId:"ChIJpQse-iupQTURDr7oBo08ZCU", spots:["八女伝統工芸館"], people:[]},
+      {name:"筑後市", reading:"ちくごし", lat:33.2123, lng:130.5021, pop:"約4.8万人", tier:1, feature:"九州新幹線筑後船小屋駅がある町。", placeId:"ChIJRaKPeG-uQTURAD8hAbSNPjk", spots:[], people:[]},
+      {name:"大川市", reading:"おおかわし", lat:33.2066, lng:130.3840, pop:"約3.1万人", tier:1, feature:"家具の町として知られる。", placeId:"ChIJnXvY4Ia0QTURzlHq6PUTXH0", spots:["大川木工まつり"], people:[]},
+      {name:"行橋市", reading:"ゆくはしし", lat:33.7288, lng:130.9828, pop:"約7.2万人", tier:1, feature:"京築地方の中心都市。", placeId:"ChIJ0aazPrfpQzURVv3DPjpa1p0", spots:[], people:[]},
+      {name:"豊前市", reading:"ぶぜんし", lat:33.6115, lng:131.1300, pop:"約2.2万人", tier:2, feature:"周防灘に面する京築地方の町。", placeId:"ChIJZ16hoLD6QzURngcQY2ySPb4", spots:[], people:[]},
+      {name:"中間市", reading:"なかまし", lat:33.8166, lng:130.7090, pop:"約4.0万人", tier:1, feature:"遠賀川沿いの町。", placeId:"ChIJjeTajtvNQzURY8mQRm-UNYM", spots:[], people:[]},
+      {name:"小郡市", reading:"おごおりし", lat:33.3964, lng:130.5555, pop:"約6.1万人", tier:1, feature:"福岡都市圏のベッドタウン。", placeId:"ChIJc0_cMPihQTURzIIwJitus_4", spots:[], people:[]},
+      {name:"筑紫野市", reading:"ちくしのし", lat:33.4876, lng:130.5259, pop:"約10.4万人", tier:0, feature:"二日市温泉が有名な町。", placeId:"ChIJgfmhm9WbQTURwQyScQkeLSI", spots:["二日市温泉"], people:[]},
+      {name:"春日市", reading:"かすがし", lat:33.5328, lng:130.4702, pop:"約11.2万人", tier:0, feature:"福岡市に隣接する住宅都市。", placeId:"ChIJPSrljp-QQTURw_nznG-rwbA", spots:["春日公園"], people:[]},
+      {name:"大野城市", reading:"おおのじょうし", lat:33.5363, lng:130.4788, pop:"約10.1万人", tier:0, feature:"大野城跡(古代山城)がある町。", placeId:"ChIJi3mQ5nCaQTURtPk_Nsankgc", spots:["大野城跡"], people:[]},
+      {name:"宗像市", reading:"むなかたし", lat:33.8056, lng:130.5407, pop:"約9.5万人", tier:1, feature:"世界遺産「宗像・沖ノ島」の玄関口。", placeId:"ChIJJyjJspcuQjURnhFFXzbB-I4", spots:["宗像大社(世界遺産)"], people:[]},
+      {name:"太宰府市", reading:"だざいふし", lat:33.5128, lng:130.5239, pop:"約7.2万人", tier:1, feature:"学問の神様、太宰府天満宮の門前町。", placeId:"ChIJ48HoObibQTURdbk1x7I_aQQ", spots:["太宰府天満宮","九州国立博物館"], people:[]},
+      {name:"古賀市", reading:"こがし", lat:33.7288, lng:130.4700, pop:"約5.9万人", tier:1, feature:"福岡都市圏のベッドタウン。", placeId:"ChIJmQpEeAiIQTUR-Zr6FtfFucU", spots:[], people:[]},
+      {name:"福津市", reading:"ふくつし", lat:33.7666, lng:130.4911, pop:"約6.8万人", tier:1, feature:"宮地嶽神社の「光の道」で知られる。", placeId:"ChIJ01x2GGAoQjURKSBSpLyoom0", spots:["宮地嶽神社(光の道)"], people:[]},
+      {name:"うきは市", reading:"うきはし", lat:33.3475, lng:130.7550, pop:"約2.7万人", tier:2, feature:"果物狩りと棚田の風景で知られる町。", placeId:"ChIJUdDEtB9zQTURwFDofCMHf9Q", spots:["棚田の風景"], people:[]},
+      {name:"宮若市", reading:"みやわかし", lat:33.7239, lng:130.6675, pop:"約2.6万人", tier:2, feature:"トヨタ自動車九州の工場がある町。", placeId:"ChIJE3altI_UQzURNs2cR13eum8", spots:[], people:[]},
+      {name:"嘉麻市", reading:"かまし", lat:33.5984, lng:130.7193, pop:"約3.4万人", tier:1, feature:"筑豊地方の自然豊かな町。", placeId:"ChIJQznKxyt8QTUR-n4hQnQeC7w", spots:[], people:[]},
+      {name:"朝倉市", reading:"あさくらし", lat:33.4138, lng:130.6597, pop:"約4.8万人", tier:1, feature:"秋月城下町で知られる歴史ある町。", placeId:"ChIJFaxCXM91QTURKlmaHo4wo-k", spots:["秋月城下町"], people:[]},
+      {name:"みやま市", reading:"みやまし", lat:33.1524, lng:130.4746, pop:"約3.5万人", tier:1, feature:"筑後平野南部に位置する農業の町。", placeId:"ChIJWSL3_l6tQTURd443VQIHJCs", spots:[], people:[]},
+      {name:"糸島市", reading:"いとしまし", lat:33.5572, lng:130.1962, pop:"約10.3万人", tier:0, feature:"海沿いの景観とカフェで人気の観光地。", placeId:"ChIJmU04nM_pQTURKUxpkrwpONk", spots:["白糸の滝","二見ヶ浦"], people:[]},
+      {name:"那珂川市", reading:"なかがわし", lat:33.4996, lng:130.4222, pop:"約5.1万人", tier:1, feature:"福岡市に隣接する、県内で最も新しい市。", placeId:"ChIJH3lNHvqWQTUR2ggHPfskYBA", spots:[], people:[]},
+      {name:"直方市", reading:"のおがたし", lat:33.7442, lng:130.7296, pop:"約5.5万人", tier:1, feature:"筑豊地方の交通の要衝。", placeId:"ChIJmSOq63bRQzUR9emHKo0asIA", spots:[], people:[]},
+      {name:"宇美町", reading:"うみまち", lat:33.5678, lng:130.5111, pop:"約3.6万人", tier:1, feature:"応神天皇生誕の地とされる宇美八幡宮がある。", placeId:"ChIJWYxkdtaaQTURDLpXK6QWGkU", spots:["宇美八幡宮"], people:[]},
+      {name:"篠栗町", reading:"ささぐりまち", lat:33.6240, lng:130.5262, pop:"約3.0万人", tier:1, feature:"四国霊場を模した篠栗四国八十八ヶ所霊場で知られる。", placeId:"ChIJ5SAv7DiEQTUR-qxK5LLhe1Y", spots:["篠栗四国八十八ヶ所"], people:[]},
+      {name:"志免町", reading:"しめまち", lat:33.5914, lng:130.4797, pop:"約4.6万人", tier:1, feature:"かつての炭鉱竪坑櫓(旧志免鉱業所)が残る。", placeId:"ChIJSe1GqlGFQTURBSz-y23NCpM", spots:["志免鉱業所竪坑櫓"], people:[]},
+      {name:"須恵町", reading:"すえまち", lat:33.5873, lng:130.5073, pop:"約2.8万人", tier:2, feature:"かつて須恵器の産地であったとされる町。", placeId:"ChIJB5ZOGySFQTUR2zvwM-o5ZVE", spots:[], people:[]},
+      {name:"新宮町", reading:"しんぐうまち", lat:33.7666, lng:130.4700, pop:"約3.2万人", tier:1, feature:"相島(あいのしま)などの離島を持つ。", placeId:null, spots:[], people:[]},
+      {name:"久山町", reading:"ひさやままち", lat:33.6300, lng:130.4900, pop:"約9,000人", tier:3, feature:"自然豊かなダムのある福岡都市圏の町。", placeId:null, spots:[], people:[]},
+      {name:"粕屋町", reading:"かすやまち", lat:33.5900, lng:130.4700, pop:"約5.0万人", tier:1, feature:"福岡空港に近いベッドタウン。", placeId:null, spots:[], people:[]},
+      {name:"芦屋町", reading:"あしやまち", lat:33.8939, lng:130.6639, pop:"約1.3万人", tier:2, feature:"航空自衛隊芦屋基地がある町。", placeId:"ChIJ-ZYjQGXLQzURJ9800ctoWBE", spots:[], people:[]},
+      {name:"水巻町", reading:"みずまきまち", lat:33.8547, lng:130.6947, pop:"約2.7万人", tier:2, feature:"遠賀川沿いの町。", placeId:"ChIJXwJgpmrMQzURBaJEsLSI5C8", spots:[], people:[]},
+      {name:"岡垣町", reading:"おかがきまち", lat:33.8534, lng:130.6116, pop:"約3.0万人", tier:1, feature:"三里松原などの海岸で知られる。", placeId:"ChIJVRbyuusyQjURenWS75Gb7E0", spots:["三里松原"], people:[]},
+      {name:"遠賀町", reading:"おんがちょう", lat:33.8480, lng:130.6684, pop:"約1.8万人", tier:2, feature:"遠賀川流域の田園地帯の町。", placeId:"ChIJKzOMuv3MQzURg2jsp-tFQiM", spots:[], people:[]},
+      {name:"小竹町", reading:"こたけまち", lat:33.6965, lng:130.7080, pop:"約7,000人", tier:3, feature:"筑豊地方の小さな町。", placeId:"ChIJWVAa5ybUQzUR3jTvvDSOwlE", spots:[], people:[]},
+      {name:"鞍手町", reading:"くらてまち", lat:33.7930, lng:130.6926, pop:"約1.5万人", tier:2, feature:"環境配慮型の新しい町役場で話題になった。", placeId:"ChIJ23C8aADTQzUROiZoO-Qwyas", spots:[], people:[]},
+      {name:"桂川町", reading:"けいせんまち", lat:33.5789, lng:130.6781, pop:"約1.2万人", tier:2, feature:"装飾古墳の王塚古墳がある。", placeId:"ChIJx4-Yqit5QTURQDXwbktS_D4", spots:["王塚古墳"], people:[]},
+      {name:"筑前町", reading:"ちくぜんまち", lat:33.4571, lng:130.5952, pop:"約2.8万人", tier:2, feature:"田園風景が広がる朝倉地方の町。", placeId:"ChIJ3em2dH2eQTURP0tDhVj4rtY", spots:[], people:[]},
+      {name:"東峰村", reading:"とうほうむら", lat:33.4646, lng:130.8262, pop:"約2,000人", tier:3, feature:"小石原焼で知られる陶芸の里。", placeId:"ChIJTRD7Cm1lQTURmfN5zxRRqBo", spots:["小石原焼の窯元"], people:[]},
+      {name:"大刀洗町", reading:"たちあらいまち", lat:33.3723, lng:130.6226, pop:"約1.5万人", tier:2, feature:"大刀洗平和記念館がある。", placeId:"ChIJHW5hDhugQTURHw_cOOyE5Fc", spots:["大刀洗平和記念館"], people:[]},
+      {name:"大木町", reading:"おおきまち", lat:33.2105, lng:130.4397, pop:"約1.4万人", tier:2, feature:"クリーク(水路網)が張り巡らされた田園地帯。", placeId:"ChIJTbf6MDeyQTURj6AYNJJMrEQ", spots:[], people:[]},
+      {name:"広川町", reading:"ひろかわまち", lat:33.2417, lng:130.5513, pop:"約1.9万人", tier:2, feature:"八女茶の産地の一部を成す町。", placeId:"ChIJxQUhbkuvQTURKidClNsMQNU", spots:[], people:[]},
+      {name:"香春町", reading:"かわらまち", lat:33.6680, lng:130.8475, pop:"約1.0万人", tier:2, feature:"香春岳が有名な、炭鉱の歴史を持つ町。", placeId:"ChIJp0DcVNfbQzURJgK69I717w0", spots:["香春岳"], people:[]},
+      {name:"添田町", reading:"そえだまち", lat:33.5717, lng:130.8543, pop:"約9,000人", tier:3, feature:"修験道の聖地、英彦山への玄関口。", placeId:"ChIJ178Si2tiQTURpgguFm553_A", spots:["英彦山"], people:[]},
+      {name:"糸田町", reading:"いとだまち", lat:33.6528, lng:130.7791, pop:"約7,000人", tier:3, feature:"炭鉱の歴史を持つ筑豊地方の町。", placeId:"ChIJO-kb05_XQzURPTY_THm5LJI", spots:[], people:[]},
+      {name:"川崎町", reading:"かわさきまち", lat:33.5999, lng:130.8150, pop:"約1.6万人", tier:2, feature:"福智山の麓に広がる町。", placeId:"ChIJhQCLWaBiQTURjuxisz-oKYI", spots:[], people:[]},
+      {name:"大任町", reading:"おおとうまち", lat:33.6122, lng:130.8535, pop:"約5,000人", tier:3, feature:"英彦山山系に近い筑豊地方の町。", placeId:"ChIJf4XnwujYQzURs_ZnTof35KY", spots:[], people:[]},
+      {name:"赤村", reading:"あかむら", lat:33.6167, lng:130.8710, pop:"約2,800人", tier:3, feature:"「源じいの森」など自然が豊かな村。", placeId:"ChIJxyx62CnZQzURRB0MhVcm8vc", spots:["源じいの森"], people:[]},
+      {name:"福智町", reading:"ふくちまち", lat:33.6832, lng:130.7801, pop:"約2.0万人", tier:2, feature:"福智山を望む筑豊地方の町。", placeId:"ChIJ0VzTHUnXQzURk9rGcagXywY", spots:[], people:[]},
+      {name:"みやこ町", reading:"みやこまち", lat:33.6992, lng:130.9201, pop:"約1.8万人", tier:2, feature:"豊前国分寺跡がある京築地方の町。", placeId:"ChIJPX1c1ifdQzURNDkHIvQqJYA", spots:["豊前国分寺跡"], people:[]},
+      {name:"苅田町", reading:"かんだまち", lat:33.7759, lng:130.9804, pop:"約3.7万人", tier:1, feature:"北九州空港に近い工業の町。", placeId:"ChIJ8WyksD_qQzURQqbARuGaEVA", spots:[], people:[]},
+      {name:"吉富町", reading:"よしとみまち", lat:33.6026, lng:131.1760, pop:"約6,000人", tier:3, feature:"山国川河口に位置する県内有数の小さな町。", placeId:"ChIJIyjJInT6QzURJmwh6vASAkQ", spots:[], people:[]},
+      {name:"上毛町", reading:"こうげまち", lat:33.5785, lng:131.1641, pop:"約6,700人", tier:3, feature:"自然豊かな京築地方の町。", placeId:"ChIJS3i1oVb6QzURoApFMb4-f38", spots:[], people:[]},
+      {name:"築上町", reading:"ちくじょうまち", lat:33.6565, lng:131.0558, pop:"約1.6万人", tier:2, feature:"求菩提山などの自然がある京築地方の町。", placeId:"ChIJgbHyGV_vQzURLVol-VcyBy4", spots:[], people:[]},
+    ]
+  },
+  "35": {
+    name: "山口県",
+    municipalities: [
+      {name:"下関市", reading:"しものせきし", lat:33.9574, lng:130.9413, pop:"約24.0万人", tier:0, feature:"関門海峡に面し、フグ(ふく)料理の本場として知られる。", placeId:"ChIJiVku-569QzURuZyTAx3Joys", spots:["唐戸市場","関門海峡・関門橋","赤間神宮"], people:["コロッケ(芸能人・ものまねタレント)"]},
+      {name:"山口市", reading:"やまぐちし", lat:34.1776, lng:131.4732, pop:"約18.7万人", tier:0, feature:"大内文化の中心地。瑠璃光寺五重塔と湯田温泉が有名な県庁所在地。", placeId:"ChIJb8smJxuXRDURDb6DCQuQkqc", spots:["瑠璃光寺五重塔","湯田温泉","山口サビエル記念聖堂"], people:["寺内正毅(政治家・第18代内閣総理大臣)"]},
+      {name:"宇部市", reading:"うべし", lat:33.9518, lng:131.2476, pop:"約15.5万人", tier:0, feature:"石炭・化学工業で発展した工業都市。彫刻の野外美術館でも知られる。", placeId:"ChIJwxPOmdOAQzURNZx48gQn6Tk", spots:["ときわ公園","宇部空港"], people:[]},
+      {name:"周南市", reading:"しゅうなんし", lat:34.0553, lng:131.8066, pop:"約13.7万人", tier:0, feature:"石油化学コンビナートが立地する工業都市。夜景スポットとしても知られる。", placeId:"ChIJpRPW6APnRDUR4QGxfr3F2cY", spots:["徳山動物園"], people:[]},
+      {name:"岩国市", reading:"いわくにし", lat:34.1666, lng:132.2187, pop:"約12.6万人", tier:0, feature:"日本三名橋の一つ、錦帯橋で知られる。", placeId:"ChIJXR364Zg1RTURA-qR1tT1kLU", spots:["錦帯橋","岩国城","岩国美術館"], people:["田中麗奈(芸能人・女優)"]},
+      {name:"防府市", reading:"ほうふし", lat:34.0513, lng:131.5628, pop:"約11.2万人", tier:0, feature:"日本三大天満宮の一つ、防府天満宮の門前町。", placeId:"ChIJQ9Pxc4iSRDURBKY6qNJjVtI", spots:["防府天満宮","毛利氏庭園"], people:[]},
+      {name:"山陽小野田市", reading:"さんようおのだし", lat:34.0029, lng:131.1821, pop:"約5.8万人", tier:1, feature:"セメント産業で栄えた工業都市。", placeId:"ChIJEwJUcciDQzURhq5H5wgszao", spots:["竜王山公園"], people:[]},
+      {name:"下松市", reading:"くだまつし", lat:34.0148, lng:131.8700, pop:"約5.7万人", tier:1, feature:"花岡福徳稲荷社で知られる、県内屈指の人口密度を持つ町。", placeId:"ChIJW8Vb-w_hRDURRMcjeCO-6_M", spots:["花岡福徳稲荷社"], people:[]},
+      {name:"光市", reading:"ひかりし", lat:33.9617, lng:131.9425, pop:"約4.8万人", tier:1, feature:"虹ケ浜・室積など瀬戸内の海水浴場が有名。伊藤博文の生誕地。", placeId:"ChIJn-J_ZHQeRTURHlcJIkiN6rY", spots:["虹ケ浜海水浴場","室積海岸"], people:["伊藤博文(政治家・初代内閣総理大臣)"]},
+      {name:"萩市", reading:"はぎし", lat:34.4082, lng:131.3992, pop:"約4.3万人", tier:1, feature:"幕末の志士を多く輩出した城下町。松下村塾は世界遺産の一部。", placeId:"ChIJGc_yLH-vRDURfT8sHqjEYjc", spots:["萩城下町","松下村塾(世界遺産)","萩焼の窯元"], people:["山縣有朋(政治家・内閣総理大臣)","桂太郎(政治家・内閣総理大臣)","田中義一(政治家・内閣総理大臣)"]},
+      {name:"柳井市", reading:"やないし", lat:33.9638, lng:132.1016, pop:"約3.0万人", tier:1, feature:"白壁の町並みと金魚ちょうちんで知られる。", placeId:"ChIJ3Q9AFd8XRTURTrHUhSxH6ko", spots:["白壁の町並み","金魚ちょうちん祭り"], people:["世良公則(芸能人・ミュージシャン)"]},
+      {name:"長門市", reading:"ながとし", lat:34.3705, lng:131.1825, pop:"約3.0万人", tier:1, feature:"元乃隅神社の鳥居群と青海島の景観で知られる。", placeId:"ChIJ6YKLusddQzURKYconcZb5ko", spots:["元乃隅神社","青海島"], people:[]},
+      {name:"美祢市", reading:"みねし", lat:34.1668, lng:131.2062, pop:"約2.2万人", tier:2, feature:"秋芳洞と秋吉台のカルスト地形で有名。", placeId:"ChIJqzN9Kpl8QzURW3eu0FY3s0I", spots:["秋芳洞","秋吉台"], people:[]},
+      {name:"周防大島町", reading:"すおうおおしまちょう", lat:33.9276, lng:132.1953, pop:"約1.5万人", tier:2, feature:"瀬戸内海最大級の島で、みかんの産地として知られる。", placeId:"ChIJR7115io-RTUROVeYPe3SU1Q", spots:["瀬戸内海国立公園の景勝地"], people:[]},
+      {name:"田布施町", reading:"たぶせちょう", lat:33.9547, lng:132.0415, pop:"約1.5万人", tier:2, feature:"岸信介・佐藤栄作、兄弟で首相を務めた2人の出身地。", placeId:"ChIJ2TC14FQYRTURonQ-s46vOWs", spots:[], people:["岸信介(政治家・第56,57代内閣総理大臣)","佐藤栄作(政治家・第61-63代内閣総理大臣)"]},
+      {name:"平生町", reading:"ひらおちょう", lat:33.9382, lng:132.0735, pop:"約1.15万人", tier:2, feature:"ため池が点在する農業の町。", placeId:"ChIJ65pwf9MZRTURnxSHRKDX1cg", spots:[], people:[]},
+      {name:"和木町", reading:"わきちょう", lat:34.2024, lng:132.2203, pop:"約6,000人", tier:3, feature:"石油化学コンビナートが立地する、県内で最も面積の小さい町。", placeId:"ChIJLfJHPEk1RTUR_Jf2vuWNrSU", spots:[], people:[]},
+      {name:"阿武町", reading:"あぶちょう", lat:34.5033, lng:131.4714, pop:"約2,900人", tier:3, feature:"2022年、給付金の誤送金事件で全国的なニュースになった。", placeId:"ChIJj652s8KyRDURkRlOCKKQmsM", spots:["きれいな海岸線"], people:[]},
+      {name:"上関町", reading:"かみのせきちょう", lat:33.8309, lng:132.1102, pop:"約2,300人", tier:3, feature:"瀬戸内海に浮かぶ町。原子力発電所の建設計画で知られる。", placeId:"ChIJAYcqTDYQRTURlIrr35-unrE", spots:["上関大橋"], people:[]},
+    ]
+  }
+};
+
+const tierColor = ["#1F3A54","#4F6B5C","#B5572E","#8A7C63"];
+
+let currentPref = "41";
+let current = 0;
+
+function mapsUrlFor(d){
+  return d.placeId
+    ? `https://www.google.com/maps/place/?q=place_id:${d.placeId}`
+    : `https://www.google.com/maps/search/?api=1&query=${d.lat},${d.lng}`;
+}
+
+function buildPrefSelect(){
+  const sel = document.getElementById('prefSelect');
+  sel.innerHTML = Object.keys(prefectures).map(code=>
+    `<option value="${code}">${prefectures[code].name}</option>`
+  ).join('');
+  sel.value = currentPref;
+}
+
+function buildList(){
+  const list = document.getElementById('list');
+  const municipalities = prefectures[currentPref].municipalities;
+  list.innerHTML = municipalities.map((d,i)=>`
+    <div class="list-item" id="item-${i}">
+      <span class="list-dot" style="background:${tierColor[d.tier]}"></span>
+      <span class="lname" onclick="selectIndex(${i})" style="cursor:pointer;flex:1;">${d.name}</span>
+      <span class="lpop">${d.pop}</span>
+      <a class="lmap" href="${mapsUrlFor(d)}" target="_blank" rel="noopener" title="Googleマップで開く" onclick="event.stopPropagation()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></a>
+    </div>
+  `).join('');
+}
+
+function tagRender(items, emptyText, cls){
+  if(!items.length) return `<span class="empty-note">${emptyText}</span>`;
+  return items.map(t=>`<span class="tag${cls?' '+cls:''}">${t}</span>`).join('');
+}
+
+function render(){
+  const municipalities = prefectures[currentPref].municipalities;
+  const d = municipalities[current];
+  document.querySelectorAll('.list-item').forEach(p=>p.classList.remove('active'));
+  const activeItem = document.getElementById('item-'+current);
+  activeItem.classList.add('active');
+  activeItem.scrollIntoView({block:'nearest'});
+
+  document.getElementById('prefTitle').textContent = prefectures[currentPref].name + " 市町村カード";
+  document.getElementById('pop').textContent = "人口 " + d.pop + "(概数)";
+  document.getElementById('mapsLink').href = mapsUrlFor(d);
+  document.getElementById('mapEmbed').src = `https://www.google.com/maps?ll=${d.lat},${d.lng}&z=9&output=embed`;
+
+  document.getElementById('name').textContent = d.name;
+  document.getElementById('reading').textContent = d.reading;
+  document.getElementById('feature').textContent = d.feature;
+  document.getElementById('spots').innerHTML = tagRender(d.spots, "特に代表的なスポットは未登録です");
+  document.getElementById('people').innerHTML = tagRender(d.people, "確実な情報がないため未登録です", "person");
+  document.getElementById('counter').textContent = `${current+1} / ${municipalities.length}`;
+}
+
+function selectIndex(i){
+  current = i;
+  render();
+}
+
+function selectPref(code){
+  currentPref = code;
+  current = 0;
+  buildList();
+  render();
+}
+
+buildPrefSelect();
+buildList();
+render();
+</script>
+</body>
+</html>
