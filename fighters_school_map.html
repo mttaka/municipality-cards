@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>出身校マップ | FIGHTERS</title>
+<title>日本ハムFIGHTERS出身校マップ</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Noto+Sans+JP:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -18,7 +18,7 @@
   body{margin:0;background:var(--cream);color:var(--ink);font-family:'Noto Sans JP',sans-serif;}
 
   .hero{
-    background:linear-gradient(160deg, var(--navy-deep), var(--navy) 60%, var(--navy-light));
+    background:linear-gradient(160deg, #0077B6, #00A6E3 55%, #5BC8F2);
     color:#fff; padding:28px 20px 22px;
   }
   .hero-inner{max-width:1100px;margin:0 auto;}
@@ -119,6 +119,14 @@
     100%{ box-shadow:0 0 0 0 rgba(15,33,66,0); }
   }
   .pin-highlight{ animation: pinPulse 1s ease-out 2; }
+
+  .leaflet-tooltip.origin-label{
+    background:rgba(255,255,255,0.94); border:1px solid var(--line); border-radius:6px;
+    box-shadow:0 1px 4px rgba(0,0,0,0.15);
+    font-family:'Noto Sans JP',sans-serif; font-size:11.5px; font-weight:700; color:var(--ink);
+    padding:2px 7px; white-space:nowrap;
+  }
+  .leaflet-tooltip.origin-label::before{ border-right-color:rgba(255,255,255,0.94); }
 </style>
 </head>
 <body>
@@ -126,14 +134,19 @@
 <div class="hero">
   <div class="hero-inner">
     <p class="eyebrow">FIGHTERS ROSTER MAP</p>
-    <h1>出身校マップ</h1>
+    <h1>日本ハムFIGHTERS出身校マップ</h1>
     <p>背番号から選手を選ぶと、プロフィールと経歴上の各地点(高校・大学・社会人・独立リーグ)が表示されます。</p>
   </div>
 </div>
 
 <main>
   <div class="selector-bar">
-    <label for="playerSelect">選手を選択(背番号順)</label>
+    <label for="sortSelect">並び順</label>
+    <select id="sortSelect" style="flex:0 0 auto; min-width:140px; font-family:'Noto Sans JP',sans-serif; font-size:13px; font-weight:700; padding:9px 12px; border-radius:10px; border:1px solid var(--line); background:var(--cream); color:var(--ink);">
+      <option value="number">背番号順</option>
+      <option value="name">名前順(五十音)</option>
+    </select>
+    <label for="playerSelect">選手を選択</label>
     <select id="playerSelect"></select>
   </div>
 
@@ -171,16 +184,42 @@ const profileCard = document.getElementById('profileCard');
 const emptyState = document.getElementById('emptyState');
 const mapNote = document.getElementById('mapNote');
 
-const defaultOpt = document.createElement('option');
-defaultOpt.value = '';
-defaultOpt.textContent = '---';
-selectEl.appendChild(defaultOpt);
+const sortSelect = document.getElementById('sortSelect');
 
-PLAYERS.forEach((p, idx) => {
-  const opt = document.createElement('option');
-  opt.value = idx;
-  opt.textContent = `${p.number}　${p.name}（${p.position}）`;
-  selectEl.appendChild(opt);
+function populatePlayerSelect(sortMode){
+  const prevValue = selectEl.value;
+
+  const order = PLAYERS.map((p, idx) => idx);
+  if(sortMode === 'name'){
+    order.sort((a, b) => PLAYERS[a].furigana.localeCompare(PLAYERS[b].furigana, 'ja'));
+  } else {
+    order.sort((a, b) => parseInt(PLAYERS[a].number) - parseInt(PLAYERS[b].number));
+  }
+
+  selectEl.innerHTML = '';
+  const defaultOpt = document.createElement('option');
+  defaultOpt.value = '';
+  defaultOpt.textContent = '── 全選手を表示 ──';
+  selectEl.appendChild(defaultOpt);
+
+  order.forEach(idx => {
+    const p = PLAYERS[idx];
+    const opt = document.createElement('option');
+    opt.value = idx;
+    opt.textContent = `${p.number}　${p.name}（${p.position}）`;
+    selectEl.appendChild(opt);
+  });
+
+  // keep the current selection when just re-sorting the list
+  if(prevValue !== '' && PLAYERS[parseInt(prevValue)]){
+    selectEl.value = prevValue;
+  }
+}
+
+populatePlayerSelect('number');
+
+sortSelect.addEventListener('change', () => {
+  populatePlayerSelect(sortSelect.value);
 });
 
 const map = L.map('map', { scrollWheelZoom: false }).setView([36.5, 138.0], 5);
@@ -311,14 +350,23 @@ function showAllOrigins(){
   profileCard.appendChild(emptyState);
   mapNote.style.display = 'none';
 
-  PLAYERS.forEach((p, idx) => {
-    const origin = p.stops.find(s => s.coord);
-    if(!origin) return;
-    const color = TYPE_COLOR[origin.type] || '#666';
-    const m = L.marker(origin.coord, {icon: makeIcon(color)})
-      .addTo(map)
-      .bindPopup(`<b>${escapeHTML(p.name)}</b>（${escapeHTML(p.number)}）<br>${escapeHTML(origin.type)}: ${escapeHTML(origin.name)}`);
-    m.on('click', () => selectPlayer(idx));
+  // group ALL stops (high school, university, company team, indie league) by location+type,
+  // so the overview map shows every color, not just high schools
+  const groups = {};
+  PLAYERS.forEach(p => {
+    p.stops.forEach(origin => {
+      if(!origin.coord) return;
+      const key = origin.type + '|' + origin.coord[0].toFixed(3) + ',' + origin.coord[1].toFixed(3);
+      if(!groups[key]) groups[key] = { coord: origin.coord, type: origin.type, placeName: origin.name, names: [] };
+      groups[key].names.push(p.name);
+    });
+  });
+
+  Object.values(groups).forEach(g => {
+    const color = TYPE_COLOR[g.type] || '#666';
+    const namesHTML = g.names.map(escapeHTML).join('<br>');
+    const m = L.marker(g.coord, {icon: makeIcon(color)}).addTo(map);
+    m.bindPopup(`<b>${namesHTML}</b><br>${escapeHTML(g.type)}: ${escapeHTML(g.placeName)}`);
     markers.push(m);
   });
 
