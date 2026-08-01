@@ -347,7 +347,7 @@ function render(){
 
   document.getElementById('pop').textContent = "人口 " + d.pop + "(概数)";
   document.getElementById('mapsLink').href = mapsUrlFor(d);
-  document.getElementById('mapEmbed').src = `https://www.google.com/maps?ll=${d.lat},${d.lng}&z=9&output=embed`;
+  document.getElementById('mapEmbed').src = `https://www.google.com/maps?q=${encodeURIComponent(d.name + ' ' + prefectures[currentPref].name)}&z=9&output=embed`;
 
   document.getElementById('name').textContent = d.name;
   document.getElementById('reading').textContent = d.reading;
