@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>アフリカ54か国 データマップ</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://unpkg.com/topojson-client@3/dist/topojson-client.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Noto+Sans+JP:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brown:#3B2416; --brown-deep:#241408; --brown-light:#5A3A22;
+    --gold:#E0A73C; --gold-bright:#F4C868;
+    --terracotta:#C1440E; --green:#3F6B4F;
+    --cream:#F8F4EA; --ink:#14181F; --muted:#6B7280; --line:#DCD5C2;
+    --fill-default:#EAD9B6; --fill-hover:#DFC694; --fill-selected:#D97B29; --stroke-default:#8A6A3F; --stroke-selected:#3B2416;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--cream);color:var(--ink);font-family:'Noto Sans JP',sans-serif;}
+
+  .hero{
+    background:linear-gradient(160deg, #8C4A17, #C1440E 55%, #E0A73C);
+    color:#fff; padding:28px 20px 22px;
+  }
+  .hero-inner{max-width:1100px;margin:0 auto;}
+  .eyebrow{font-family:'Space Mono',monospace;letter-spacing:.22em;font-size:11px;color:var(--gold-bright);text-transform:uppercase;margin:0 0 8px;}
+  .hero h1{font-size:clamp(22px,4vw,30px);font-weight:900;margin:0 0 4px;}
+  .hero p{margin:0;color:rgba(255,255,255,0.85);font-size:13px;}
+
+  main{max-width:1100px;margin:0 auto;padding:22px 20px 60px;}
+
+  .selector-bar{
+    display:flex; gap:12px; align-items:center; flex-wrap:wrap;
+    background:#fff; border:1px solid var(--line); border-radius:14px;
+    padding:16px 18px; margin-bottom:20px;
+  }
+  .selector-bar label{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:.06em;}
+  select#sortSelect{
+    flex:0 0 auto; min-width:150px;
+    font-family:'Noto Sans JP',sans-serif; font-size:13px; font-weight:700;
+    padding:9px 12px; border-radius:10px; border:1px solid var(--line);
+    background:var(--cream); color:var(--ink);
+  }
+  select#countrySelect{
+    flex:1; min-width:220px;
+    font-family:'Noto Sans JP',sans-serif; font-size:15px; font-weight:700;
+    padding:10px 14px; border-radius:10px; border:1px solid var(--line);
+    background:var(--cream); color:var(--ink); appearance:none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--brown) 50%), linear-gradient(135deg, var(--brown) 50%, transparent 50%);
+    background-position: calc(100% - 20px) center, calc(100% - 15px) center;
+    background-size: 5px 5px, 5px 5px; background-repeat:no-repeat;
+  }
+
+  .layout{display:grid; grid-template-columns: 380px 1fr; gap:20px;}
+  @media (max-width: 860px){ .layout{grid-template-columns:1fr;} }
+
+  .card{
+    background:#fff; border:1px solid var(--line); border-radius:16px;
+    padding:22px; min-height:460px;
+  }
+  .empty-state{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    height:100%; min-height:420px; color:var(--muted); text-align:center; gap:10px;
+  }
+  .empty-state .big{font-size:40px;}
+  .empty-state p{margin:0;font-size:13px;line-height:1.7;}
+
+  .p-header{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+  .flag-badge{
+    font-size:34px; line-height:1;
+    min-width:56px; height:52px; border-radius:10px;
+    background:linear-gradient(180deg, var(--gold-bright), var(--gold));
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,0.06);
+  }
+  .p-name{font-size:19px;font-weight:700;margin:0;}
+  .p-furi{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);margin:2px 0 0;}
+
+  .info-table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  .info-table tr{border-top:1px dashed var(--line);}
+  .info-table tr:first-child{border-top:none;}
+  .info-table td{padding:9px 4px;vertical-align:top;}
+  .info-table td:first-child{
+    font-family:'Space Mono',monospace;font-size:10.5px;color:var(--terracotta);
+    width:96px; letter-spacing:.04em; padding-top:11px; flex-shrink:0;
+  }
+  .info-table td:last-child{font-weight:500;line-height:1.7;}
+
+  .gdp-rank-badge{
+    display:inline-block; font-family:'Oswald',sans-serif; font-weight:700; font-size:13px;
+    background:var(--green); color:#fff; padding:2px 9px; border-radius:999px; margin-right:6px;
+  }
+
+  #map{width:100%; height:560px; border-radius:16px; border:1px solid var(--line); background:#dce8ef;}
+  .map-legend{display:flex;gap:14px;margin-top:10px;font-family:'Space Mono',monospace;font-size:10.5px;color:var(--muted);flex-wrap:wrap;align-items:center;}
+  .map-legend span{display:inline-flex;align-items:center;gap:6px;}
+  .swatch{width:14px;height:14px;border-radius:3px;display:inline-block;border:1px solid rgba(0,0,0,0.15);}
+  .swatch.default{background:var(--fill-default);}
+  .swatch.selected{background:var(--fill-selected);}
+  .dotmark{width:11px;height:11px;border-radius:50%;display:inline-block;background:var(--fill-selected);border:2px solid #fff;box-shadow:0 0 0 1px var(--stroke-selected);}
+
+  .map-note{
+    font-size:12px; color:var(--muted); background:var(--cream);
+    border:1px dashed var(--line); border-radius:10px; padding:10px 14px; margin-top:10px;
+  }
+
+  footer{text-align:center;padding:24px;font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);line-height:1.8;}
+
+  .leaflet-tooltip.country-label-permanent{
+    background:rgba(255,255,255,0.82); border:none; border-radius:4px;
+    box-shadow:none;
+    font-family:'Noto Sans JP',sans-serif; font-size:10.5px; font-weight:700; color:var(--brown-deep);
+    padding:1px 5px; white-space:nowrap; pointer-events:none;
+  }
+  .leaflet-tooltip.country-label-permanent::before{ display:none; }
+
+  .heritage-dot{width:12px;height:12px;border-radius:50%;display:inline-block;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,0.25);}
+  .heritage-dot.natural{background:#2E7D32;}
+  .heritage-dot.cultural{background:#C1440E;}
+  .heritage-dot.mixed{background:#8E44AD;}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-inner">
+    <p class="eyebrow">AFRICA COUNTRY DATA MAP</p>
+    <h1>アフリカ54か国 データマップ</h1>
+    <p>国を選ぶと、その国のプロフィール（首都・人口・公用語・GDP順位・概要）が表示されます。地図上の国をクリックしても同様にカードが更新されます。</p>
+  </div>
+</div>
+
+<main>
+  <div class="selector-bar">
+    <label for="sortSelect">並び順</label>
+    <select id="sortSelect">
+      <option value="gdp">GDP順</option>
+      <option value="alpha">アルファベット順</option>
+      <option value="pop">人口順</option>
+    </select>
+    <label for="countrySelect">国を選択</label>
+    <select id="countrySelect"></select>
+  </div>
+
+  <div class="layout">
+    <div class="card" id="profileCard">
+      <div class="empty-state" id="emptyState">
+        <div class="big">🌍</div>
+        <p>国を選択すると<br>その国のプロフィールが表示されます<br><br>今はアフリカ大陸全体を<br>地図上に表示しています</p>
+      </div>
+    </div>
+
+    <div>
+      <div id="map"></div>
+      <div class="map-legend">
+        <span><span class="swatch default"></span>未選択の国</span>
+        <span><span class="swatch selected"></span>選択中の国</span>
+        <span><span class="dotmark"></span>小さな島しょ国（丸印で表示）</span>
+        <span>※国境データは簡略化された地図を使用しています</span>
+      </div>
+      <div class="map-note" id="mapNote" style="display:none;"></div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  出典: GDP・人口 = IMF World Economic Outlook（2026年4月版、経由: ecodb.net「世界経済のネタ帳」）／首都・公用語・世界遺産等は各種公開情報を基に独自にまとめています。エリトリアはIMF統計未収録のため人口は国連推計の目安値、GDPはデータなしとしています。地図は OpenStreetMap（背景）および Natural Earth / world-atlas（国境データ）を使用しています。国境・順位・数値は変動する場合があり、目安としてご利用ください。
+</footer>
+
+<script>
+// ===================== データ =====================
+const COUNTRIES = [
+  {id:12, code:'DZ', ja:'アルジェリア', en:'Algeria', capital:'アルジェ', lat:36.75, lng:3.06, pop:47.25, lang:'アラビア語（タマジグト語＝ベルベル語も公用語）', gdpRank:4, gdpB:285.72, overview:'アフリカ最大の国土を持つ北アフリカの産油・産ガス国。首都アルジェの旧市街「カスバ」や、先史時代の岩絵で知られる「タッシリ・ナジェール」など世界遺産が複数ある。'},
+  {id:24, code:'AO', ja:'アンゴラ', en:'Angola', capital:'ルアンダ', lat:-8.84, lng:13.23, pop:39.21, lang:'ポルトガル語', gdpRank:6, gdpB:141.73, overview:'南部アフリカの産油国で、長期の内戦（〜2002年）からの復興が進む。かつてのコンゴ王国の都だった「ンバンザ・コンゴ」が世界遺産に登録されている。'},
+  {id:204, code:'BJ', ja:'ベナン', en:'Benin', capital:'ポルトノボ', lat:6.50, lng:2.62, pop:14.92, lang:'フランス語', gdpRank:24, gdpB:24.38, overview:'ヴードゥー教発祥の地とされ、かつて栄えたダホメ王国の history を今に伝える「アボメーの王宮群」が世界遺産に登録されている。'},
+  {id:72, code:'BW', ja:'ボツワナ', en:'Botswana', capital:'ハボローネ', lat:-24.65, lng:25.91, pop:2.55, lang:'英語（セツワナ語が国語）', gdpRank:30, gdpB:19.53, overview:'ダイヤモンド産業に支えられた、アフリカでも屈指の安定した民主主義国。広大な湿地帯「オカバンゴ・デルタ」が世界遺産。'},
+  {id:854, code:'BF', ja:'ブルキナファソ', en:'Burkina Faso', capital:'ワガドゥグー', lat:12.37, lng:-1.52, pop:24.10, lang:'フランス語', gdpRank:23, gdpB:27.14, overview:'西アフリカ内陸のサヘル地域に位置する国。金の産出が盛んで、古代の製鉄遺跡「ロロペニの遺跡群」が世界遺産に登録されている。'},
+  {id:108, code:'BI', ja:'ブルンジ', en:'Burundi', capital:'ギテガ', lat:-3.43, lng:29.93, pop:14.47, lang:'キルンジ語、フランス語、英語', gdpRank:41, gdpB:6.92, overview:'アフリカ大湖地域にある人口密度の高い小国。2019年に首都機能がブジュンブラからギテガへ移された。世界遺産の登録はまだない。'},
+  {id:132, code:'CV', ja:'カーボベルデ', en:'Cabo Verde', capital:'プライア', lat:14.93, lng:-23.51, pop:0.51, lang:'ポルトガル語', gdpRank:47, gdpB:3.08, overview:'西アフリカ沖の島しょ国。ヨーロッパ人が熱帯圏に築いた最古の植民都市のひとつ「シダーデ・ヴェーリャ」が世界遺産。'},
+  {id:120, code:'CM', ja:'カメルーン', en:'Cameroon', capital:'ヤウンデ', lat:3.87, lng:11.52, pop:29.88, lang:'フランス語、英語', gdpRank:14, gdpB:59.28, overview:'砂漠から熱帯雨林、山岳、海岸まで多様な地形を持ち「ミニアフリカ」とも呼ばれる。熱帯林保護区「ジャー動物保護区」が世界遺産。'},
+  {id:140, code:'CF', ja:'中央アフリカ', en:'Central African Republic', capital:'バンギ', lat:4.36, lng:18.56, pop:5.51, lang:'フランス語、サンゴ語', gdpRank:46, gdpB:3.19, overview:'内陸に位置し、長年の政情不安を抱える国のひとつ。サバンナの野生動物保護区「マノヴォ・グンダ・サンフローリス国立公園」は危機遺産に指定されている。'},
+  {id:148, code:'TD', ja:'チャド', en:'Chad', capital:'ンジャメナ', lat:12.13, lng:15.06, pop:18.96, lang:'フランス語、アラビア語', gdpRank:26, gdpB:22.09, overview:'内陸国で、縮小が続く「チャド湖」が国名の由来。奇岩群が広がる「エネディ山地」が自然と文化の複合遺産として登録されている。'},
+  {id:174, code:'KM', ja:'コモロ', en:'Comoros', capital:'モロニ', lat:-11.70, lng:43.26, pop:0.91, lang:'コモロ語、アラビア語、フランス語', gdpRank:52, gdpB:1.61, overview:'モザンビーク海峡に浮かぶ火山島の国。イランイランなど香料作物の産地として知られる。世界遺産の登録はまだない。'},
+  {id:178, code:'CG', ja:'コンゴ共和国', en:'Republic of the Congo', capital:'ブラザビル', lat:-4.27, lng:15.28, pop:6.49, lang:'フランス語', gdpRank:33, gdpB:15.59, overview:'産油国で、隣国コンゴ民主共和国と首都同士がコンゴ川を挟んで向かい合う。カメルーン・中央アフリカと共有する「サンガ川流域の3か国保護区」が世界遺産。'},
+  {id:180, code:'CD', ja:'コンゴ民主共和国', en:'Democratic Republic of the Congo', capital:'キンシャサ', lat:-4.32, lng:15.31, pop:106.55, lang:'フランス語', gdpRank:11, gdpB:92.83, overview:'コンゴ盆地の広大な熱帯雨林と豊富な鉱物資源（コバルト等）を持つアフリカ有数の大国。ヴィルンガ国立公園など5つの世界遺産があり、多くが危機遺産に指定されている。'},
+  {id:384, code:'CI', ja:'コートジボワール', en:'Côte d\u2019Ivoire', capital:'ヤムスクロ', lat:6.83, lng:-5.29, pop:32.90, lang:'フランス語', gdpRank:10, gdpB:98.89, overview:'世界最大のカカオ生産国。歴史的な港町「グラン・バッサム」や、ギニアと共有する「ニンバ山厳正自然保護区」が世界遺産。'},
+  {id:262, code:'DJ', ja:'ジブチ', en:'Djibouti', capital:'ジブチ', lat:11.59, lng:43.15, pop:1.06, lang:'フランス語、アラビア語', gdpRank:45, gdpB:4.38, overview:'紅海とアデン湾を結ぶ海上交通の要衝で、各国の軍事拠点が置かれる戦略的な小国。世界遺産の登録はまだない。'},
+  {id:818, code:'EG', ja:'エジプト', en:'Egypt', capital:'カイロ', lat:30.04, lng:31.24, pop:107.90, lang:'アラビア語', gdpRank:2, gdpB:364.64, overview:'ナイル川流域に栄えた古代文明の国。ギザのピラミッド（メンフィスと周辺）、テーベ（ルクソール）、アブ・シンベル神殿など7件の世界遺産を持つ。'},
+  {id:226, code:'GQ', ja:'赤道ギニア', en:'Equatorial Guinea', capital:'マラボ', lat:3.75, lng:8.78, pop:1.64, lang:'スペイン語、フランス語、ポルトガル語', gdpRank:37, gdpB:12.48, overview:'アフリカで唯一スペイン語を公用語とする産油国。世界遺産の登録はまだない。'},
+  {id:232, code:'ER', ja:'エリトリア', en:'Eritrea', capital:'アスマラ', lat:15.34, lng:38.93, pop:'約367万人（国連推計、公式統計不足のため目安）', lang:'ティグリニャ語、アラビア語、英語（実務言語）', gdpRank:null, gdpB:null, overview:'紅海に面する国で、イタリア植民地時代のモダニズム建築が数多く残る首都「アスマラ」が世界遺産に登録されている。GDP統計はIMFに未収録。'},
+  {id:748, code:'SZ', ja:'エスワティニ', en:'Eswatini', capital:'ムババーネ', lat:-26.32, lng:31.14, pop:1.16, lang:'英語、スワティ語', gdpRank:44, gdpB:5.17, overview:'アフリカに残る唯一の絶対君主制国家（旧スワジランド）。世界遺産の登録はまだない。'},
+  {id:231, code:'ET', ja:'エチオピア', en:'Ethiopia', capital:'アディスアベバ', lat:9.03, lng:38.74, pop:110.60, lang:'アムハラ語（連邦の実務言語）', gdpRank:9, gdpB:109.11, overview:'アフリカでほぼ唯一、植民地支配を受けなかった国。岩窟教会群で有名な「ラリベラ」やアクスム遺跡など、アフリカで最も多い世界遺産件数を持つ国のひとつ。'},
+  {id:266, code:'GA', ja:'ガボン', en:'Gabon', capital:'リーブルビル', lat:0.42, lng:9.45, pop:2.31, lang:'フランス語', gdpRank:28, gdpB:21.62, overview:'国土の85%が熱帯雨林に覆われる産油国。生態系と地形が評価された「ロペ・オカンダの景観」が世界遺産。'},
+  {id:270, code:'GM', ja:'ガンビア', en:'Gambia', capital:'バンジュール', lat:13.45, lng:-16.58, pop:2.86, lang:'英語', gdpRank:50, gdpB:2.58, overview:'ガンビア川に沿った細長い国土を持つ、アフリカ本土最小の国。周辺国と共有する「セネガンビアの環状列石群」が世界遺産。'},
+  {id:288, code:'GH', ja:'ガーナ', en:'Ghana', capital:'アクラ', lat:5.60, lng:-0.19, pop:35.06, lang:'英語', gdpRank:8, gdpB:114.71, overview:'金とカカオの産地で、1957年にサブサハラ・アフリカで最初に独立を果たした国。奴隷貿易の拠点だった「ケープコースト城」やアシャンティの伝統建築が世界遺産。'},
+  {id:324, code:'GN', ja:'ギニア', en:'Guinea', capital:'コナクリ', lat:9.64, lng:-13.58, pop:15.80, lang:'フランス語', gdpRank:22, gdpB:27.22, overview:'ボーキサイト（アルミニウムの原料）の埋蔵量が世界最大級。コートジボワールと共有する「ニンバ山厳正自然保護区」が世界遺産。'},
+  {id:624, code:'GW', ja:'ギニアビサウ', en:'Guinea-Bissau', capital:'ビサウ', lat:11.86, lng:-15.60, pop:2.02, lang:'ポルトガル語', gdpRank:49, gdpB:2.65, overview:'ビジャゴス諸島などマングローブの島々が広がる西アフリカの小国。世界遺産の登録はまだない。'},
+  {id:404, code:'KE', ja:'ケニア', en:'Kenya', capital:'ナイロビ', lat:-1.29, lng:36.82, pop:53.35, lang:'スワヒリ語、英語', gdpRank:7, gdpB:136.46, overview:'サファリ観光で世界的に知られる東アフリカの拠点国。トゥルカナ湖国立公園群やラム旧市街など複数の世界遺産を持つ。'},
+  {id:426, code:'LS', ja:'レソト', en:'Lesotho', capital:'マセル', lat:-29.31, lng:27.48, pop:2.37, lang:'セソト語、英語', gdpRank:48, gdpB:2.85, overview:'国土全体が南アフリカに囲まれた内陸国で、標高の高さから「天空の王国」と呼ばれる。世界遺産の登録はまだない。'},
+  {id:430, code:'LR', ja:'リベリア', en:'Liberia', capital:'モンロビア', lat:6.30, lng:-10.80, pop:5.73, lang:'英語', gdpRank:43, gdpB:5.22, overview:'解放された元奴隷たちによって1847年に建国された、アフリカ最古の共和国。世界遺産の登録はまだない。'},
+  {id:434, code:'LY', ja:'リビア', en:'Libya', capital:'トリポリ', lat:32.89, lng:13.19, pop:7.46, lang:'アラビア語', gdpRank:17, gdpB:44.73, overview:'アフリカ最大級の石油埋蔵量を持つ北アフリカの国。ローマ時代の都市遺跡レプティス・マグナなど5件の世界遺産があるが、いずれも危機遺産に指定されている。'},
+  {id:450, code:'MG', ja:'マダガスカル', en:'Madagascar', capital:'アンタナナリボ', lat:-18.88, lng:47.51, pop:31.44, lang:'マダガスカル語、フランス語', gdpRank:29, gdpB:19.56, overview:'世界第4位の面積を誇る島国で、キツネザルなど固有種の宝庫。「アツィナナナの雨林群」が世界遺産に登録されている。'},
+  {id:454, code:'MW', ja:'マラウイ', en:'Malawi', capital:'リロングウェ', lat:-13.96, lng:33.79, pop:24.06, lang:'英語、チェワ語', gdpRank:34, gdpB:15.05, overview:'「アフリカの温かい心」と呼ばれる人懐こい国民性で知られる。淡水魚の多様性で有名な「マラウイ湖国立公園」が世界遺産。'},
+  {id:466, code:'ML', ja:'マリ', en:'Mali', capital:'バマコ', lat:12.65, lng:-8.00, pop:25.25, lang:'フランス語（バンバラ語も広く使用）', gdpRank:20, gdpB:30.05, overview:'かつて交易で栄えたマリ帝国の中心地で、「トンブクトゥ」や泥のモスクで知られる「ジェンネ旧市街」、ドゴン族が暮らす「バンディアガラの断崖」など世界遺産が複数あり、多くが危機遺産に指定されている。'},
+  {id:478, code:'MR', ja:'モーリタニア', en:'Mauritania', capital:'ヌアクショット', lat:18.09, lng:-15.98, pop:4.63, lang:'アラビア語', gdpRank:38, gdpB:12.29, overview:'国土の大半をサハラ砂漠が占める。渡り鳥の楽園「バン・ダルガン国立公園」や、隊商都市「ウアダン、シンゲッティ、ティシット、ウァラタ」が世界遺産。'},
+  {id:480, code:'MU', ja:'モーリシャス', en:'Mauritius', capital:'ポートルイス', lat:-20.16, lng:57.50, pop:1.24, lang:'英語（実務公用語、フランス語・クレオール語も広く使用）', gdpRank:31, gdpB:16.13, overview:'インド洋に浮かぶリゾート島国で、アフリカの中でも所得水準が高い。移民労働の歴史を伝える「アープラヴァシ・ガート」と「ル・モーンの文化的景観」が世界遺産。'},
+  {id:504, code:'MA', ja:'モロッコ', en:'Morocco', capital:'ラバト', lat:34.02, lng:-6.83, pop:37.71, lang:'アラビア語、タマジグト語（ベルベル語）', gdpRank:5, gdpB:182.59, overview:'ヨーロッパとアフリカを結ぶ玄関口。フェズやマラケシュの旧市街、隊商都市「アイット・ベン・ハドゥ」など9件の世界遺産を持つ。'},
+  {id:508, code:'MZ', ja:'モザンビーク', en:'Mozambique', capital:'マプト', lat:-25.97, lng:32.57, pop:35.84, lang:'ポルトガル語', gdpRank:25, gdpB:22.34, overview:'インド洋に長い海岸線を持つ国。かつての交易拠点「モザンビーク島」が世界遺産に登録されている。'},
+  {id:516, code:'NA', ja:'ナミビア', en:'Namibia', capital:'ウィントフック', lat:-22.56, lng:17.08, pop:3.05, lang:'英語', gdpRank:35, gdpB:14.83, overview:'世界最古の砂漠「ナミブ砂漠」を擁し、アフリカで最も人口密度が低い国のひとつ。「ナミブ砂海」と古代岩絵の「トファ・ゲームスの岩絵」が世界遺産。'},
+  {id:562, code:'NE', ja:'ニジェール', en:'Niger', capital:'ニアメ', lat:13.51, lng:2.11, pop:29.13, lang:'フランス語', gdpRank:27, gdpB:21.84, overview:'国土の大半をサハラ砂漠が占め、ウランの産出国として知られる。「W国立公園」や「アイルとテネレの自然保護区群」が世界遺産。'},
+  {id:566, code:'NG', ja:'ナイジェリア', en:'Nigeria', capital:'アブジャ', lat:9.08, lng:7.40, pop:237.58, lang:'英語（ハウサ語・ヨルバ語・イボ語なども広く使用）', gdpRank:3, gdpB:290.49, overview:'アフリカ最大の人口を抱え、映画産業「ノリウッド」でも知られる大国。「スクル文化的景観」と聖なる森「オスン＝オソボの聖なる森」が世界遺産。'},
+  {id:646, code:'RW', ja:'ルワンダ', en:'Rwanda', capital:'キガリ', lat:-1.94, lng:30.06, pop:14.16, lang:'キニヤルワンダ語、フランス語、英語、スワヒリ語', gdpRank:32, gdpB:15.97, overview:'「千の丘の国」と呼ばれる緑豊かな国。1994年の悲劇的な虐殺から著しい復興を遂げた。世界遺産の正式登録はまだなく、国立公園群が暫定リストに含まれる。'},
+  {id:678, code:'ST', ja:'サントメ・プリンシペ', en:'São Tomé and Príncipe', capital:'サントメ', lat:0.34, lng:6.73, pop:0.24, lang:'ポルトガル語', gdpRank:53, gdpB:0.98, overview:'ギニア湾に浮かぶ火山島の国で、アフリカ最小の人口。カカオの高級産地としても知られる。世界遺産の登録はまだない。'},
+  {id:686, code:'SN', ja:'セネガル', en:'Senegal', capital:'ダカール', lat:14.72, lng:-17.47, pop:19.17, lang:'フランス語', gdpRank:19, gdpB:37.12, overview:'アフリカ大陸最西端に位置する。奴隷貿易の記憶を伝える「ゴレ島」や渡り鳥の楽園「ジュジ国立鳥類保護区」が世界遺産。'},
+  {id:690, code:'SC', ja:'セーシェル', en:'Seychelles', capital:'ビクトリア', lat:-4.62, lng:55.45, pop:0.13, lang:'セーシェル・クレオール語、英語、フランス語', gdpRank:51, gdpB:2.32, overview:'アフリカ最小の国土を持つインド洋の楽園。珊瑚礁の「アルダブラ環礁」とヤシの原生林「メイ渓谷自然保護区」が世界遺産。'},
+  {id:694, code:'SL', ja:'シエラレオネ', en:'Sierra Leone', capital:'フリータウン', lat:8.48, lng:-13.23, pop:8.82, lang:'英語', gdpRank:40, gdpB:7.71, overview:'ダイヤモンド産出国で、首都フリータウンは解放奴隷の入植地として建設された。世界遺産の登録はまだない。'},
+  {id:706, code:'SO', ja:'ソマリア', en:'Somalia', capital:'モガディシュ', lat:2.05, lng:45.32, pop:16.96, lang:'ソマリ語、アラビア語', gdpRank:36, gdpB:12.96, overview:'アフリカ大陸本土で最も長い海岸線を持つ「アフリカの角」の国。長年の政情不安が続いており、世界遺産の登録はまだない。'},
+  {id:710, code:'ZA', ja:'南アフリカ', en:'South Africa', capital:'プレトリア（行政首都）／ケープタウン（立法首都）', lat:-25.75, lng:28.19, pop:63.10, lang:'英語、ズールー語など12言語（2023年より手話も公用語）', gdpRank:1, gdpB:427.14, overview:'アフリカで最も工業化が進んだ経済大国で、G20の唯一のアフリカ加盟国。ロベン島、人類のゆりかご、テーブルマウンテンなど10件の世界遺産を持つ。'},
+  {id:728, code:'SS', ja:'南スーダン', en:'South Sudan', capital:'ジュバ', lat:4.85, lng:31.58, pop:12.19, lang:'英語', gdpRank:42, gdpB:5.73, overview:'2011年に独立した世界で最も新しい国。広大な湿地帯「スッド」が広がる。世界遺産の登録はまだない。'},
+  {id:729, code:'SD', ja:'スーダン', en:'Sudan', capital:'ハルツーム', lat:15.50, lng:32.56, pop:50.42, lang:'アラビア語、英語', gdpRank:18, gdpB:39.72, overview:'白ナイルと青ナイルが合流する国で、実はエジプトより多くのピラミッドを持つ。古代都市「メロエ島の考古遺跡群」が世界遺産。'},
+  {id:834, code:'TZ', ja:'タンザニア', en:'Tanzania', capital:'ドドマ（法的首都）／ダルエスサラーム（経済的中心）', lat:-6.16, lng:35.75, pop:67.62, lang:'スワヒリ語、英語', gdpRank:12, gdpB:87.34, overview:'アフリカ最高峰キリマンジャロを擁し、セレンゲティ国立公園やンゴロンゴロ保全地域など7件の世界遺産を持つサファリ観光の大国。'},
+  {id:768, code:'TG', ja:'トーゴ', en:'Togo', capital:'ロメ', lat:6.13, lng:1.22, pop:9.78, lang:'フランス語', gdpRank:39, gdpB:11.90, overview:'ギニア湾岸の細長い国土を持つ。バタマリバ族の泥の塔状住居群「クタマク」の文化的景観が世界遺産。'},
+  {id:788, code:'TN', ja:'チュニジア', en:'Tunisia', capital:'チュニス', lat:36.81, lng:10.18, pop:12.35, lang:'アラビア語', gdpRank:15, gdpB:57.59, overview:'アフリカ最北端の国で、2011年の「アラブの春」発端の地。古代都市カルタゴやエル・ジェムの円形闘技場など8件の世界遺産を持つ。'},
+  {id:800, code:'UG', ja:'ウガンダ', en:'Uganda', capital:'カンパラ', lat:0.35, lng:32.58, pop:48.02, lang:'英語、スワヒリ語', gdpRank:13, gdpB:66.01, overview:'ナイル川の源流ヴィクトリア湖を擁し、チャーチルが「アフリカの真珠」と称した国。マウンテンゴリラで有名な「ブウィンディ原生国立公園」など世界遺産が複数ある。'},
+  {id:894, code:'ZM', ja:'ザンビア', en:'Zambia', capital:'ルサカ', lat:-15.39, lng:28.32, pop:21.91, lang:'英語', gdpRank:21, gdpB:28.88, overview:'銅産業が経済を支える内陸国。ジンバブエと共有する大瀑布「ヴィクトリアの滝」が世界遺産。'},
+  {id:716, code:'ZW', ja:'ジンバブエ', en:'Zimbabwe', capital:'ハラレ', lat:-17.83, lng:31.05, pop:17.36, lang:'英語、ショナ語、ンデベレ語など16言語', gdpRank:16, gdpB:53.47, overview:'国名の由来となった石造遺跡「グレート・ジンバブエ遺跡」や、ザンビアと共有する「ヴィクトリアの滝」が世界遺産に登録されている。'}
+];
+
+const COUNTRY_BY_ID = {};
+COUNTRIES.forEach(c => COUNTRY_BY_ID[c.id] = c);
+
+const AFRICA_CENTER = [1, 20];
+const AFRICA_ZOOM = 3;
+const GDP_TOTAL = COUNTRIES.filter(c => c.gdpRank !== null).length;
+
+// 世界遺産（概要欄で触れた主な登録物件。type: natural=自然遺産 / cultural=文化遺産 / mixed=複合遺産）
+const HERITAGE_TYPE_COLOR = { natural:'#2E7D32', cultural:'#C1440E', mixed:'#8E44AD' };
+const HERITAGE_TYPE_LABEL = { natural:'自然遺産', cultural:'文化遺産', mixed:'複合遺産' };
+
+const HERITAGE_SITES = [
+  {country:12, name:'アルジェのカスバ', type:'cultural', lat:36.78, lng:3.06},
+  {country:12, name:'タッシリ・ナジェール', type:'mixed', lat:25.5, lng:8.5},
+  {country:24, name:'ンバンザ・コンゴ', type:'cultural', lat:-6.27, lng:14.25},
+  {country:204, name:'アボメーの王宮群', type:'cultural', lat:7.18, lng:1.99},
+  {country:72, name:'オカバンゴ・デルタ', type:'natural', lat:-19.28, lng:22.85},
+  {country:854, name:'ロロペニの遺跡群', type:'cultural', lat:10.15, lng:-3.59},
+  {country:132, name:'シダーデ・ヴェーリャ', type:'cultural', lat:14.92, lng:-23.60},
+  {country:120, name:'ジャー動物保護区', type:'natural', lat:3.35, lng:12.90},
+  {country:140, name:'マノヴォ・グンダ・サンフローリス国立公園', type:'natural', lat:9.5, lng:21.5},
+  {country:148, name:'エネディ山地', type:'mixed', lat:16.8, lng:22.0},
+  {country:178, name:'サンガ川流域の3か国保護区', type:'natural', lat:2.44, lng:16.17},
+  {country:180, name:'ヴィルンガ国立公園', type:'natural', lat:-1.5, lng:29.2},
+  {country:180, name:'ガランバ国立公園', type:'natural', lat:4.5, lng:29.5},
+  {country:180, name:'カフジ＝ビエガ国立公園', type:'natural', lat:-2.6, lng:28.7},
+  {country:180, name:'オカピ野生動物保護区', type:'natural', lat:1.5, lng:28.5},
+  {country:180, name:'サロンガ国立公園', type:'natural', lat:-2.0, lng:20.7},
+  {country:384, name:'グラン・バッサム', type:'cultural', lat:5.20, lng:-3.74},
+  {country:384, name:'ニンバ山厳正自然保護区（コートジボワール側）', type:'natural', lat:7.53, lng:-8.42},
+  {country:818, name:'ギザのピラミッド（メンフィスと周辺）', type:'cultural', lat:29.98, lng:31.13},
+  {country:818, name:'テーベ（ルクソール）', type:'cultural', lat:25.70, lng:32.64},
+  {country:818, name:'アブ・シンベル神殿', type:'cultural', lat:22.34, lng:31.63},
+  {country:232, name:'アスマラ（モダニズム都市）', type:'cultural', lat:15.34, lng:38.93},
+  {country:231, name:'ラリベラの岩窟教会群', type:'cultural', lat:12.03, lng:39.04},
+  {country:231, name:'アクスム遺跡', type:'cultural', lat:14.12, lng:38.72},
+  {country:266, name:'ロペ・オカンダの景観', type:'mixed', lat:-0.62, lng:11.58},
+  {country:270, name:'セネガンビアの環状列石群', type:'cultural', lat:13.68, lng:-15.53},
+  {country:288, name:'ケープコースト城', type:'cultural', lat:5.10, lng:-1.24},
+  {country:288, name:'アシャンティの伝統建築', type:'cultural', lat:6.7, lng:-1.5},
+  {country:324, name:'ニンバ山厳正自然保護区（ギニア側）', type:'natural', lat:7.60, lng:-8.45},
+  {country:404, name:'トゥルカナ湖国立公園群', type:'natural', lat:3.58, lng:36.05},
+  {country:404, name:'ラム旧市街', type:'cultural', lat:-2.27, lng:40.90},
+  {country:434, name:'レプティス・マグナ', type:'cultural', lat:32.64, lng:14.29},
+  {country:450, name:'アツィナナナの雨林群', type:'natural', lat:-18.9, lng:48.4},
+  {country:454, name:'マラウイ湖国立公園', type:'natural', lat:-14.0, lng:34.9},
+  {country:466, name:'トンブクトゥ', type:'cultural', lat:16.77, lng:-3.01},
+  {country:466, name:'ジェンネ旧市街', type:'cultural', lat:13.91, lng:-4.56},
+  {country:466, name:'バンディアガラの断崖（ドゴン族の集落）', type:'cultural', lat:14.35, lng:-3.25},
+  {country:478, name:'バン・ダルガン国立公園', type:'natural', lat:20.5, lng:-16.45},
+  {country:478, name:'隊商都市群（ウアダン、シンゲッティ等）', type:'cultural', lat:20.46, lng:-12.37},
+  {country:480, name:'アープラヴァシ・ガート', type:'cultural', lat:-20.16, lng:57.50},
+  {country:480, name:'ル・モーンの文化的景観', type:'cultural', lat:-20.45, lng:57.32},
+  {country:504, name:'フェズ旧市街', type:'cultural', lat:34.06, lng:-4.98},
+  {country:504, name:'マラケシュ旧市街', type:'cultural', lat:31.63, lng:-7.99},
+  {country:504, name:'アイット・ベン・ハドゥ', type:'cultural', lat:31.05, lng:-7.13},
+  {country:508, name:'モザンビーク島', type:'cultural', lat:-15.03, lng:40.73},
+  {country:516, name:'ナミブ砂海', type:'natural', lat:-24.7, lng:15.3},
+  {country:516, name:'トファ・ゲームスの岩絵', type:'cultural', lat:-20.59, lng:14.37},
+  {country:562, name:'W国立公園', type:'natural', lat:12.3, lng:2.4},
+  {country:562, name:'アイルとテネレの自然保護区群', type:'natural', lat:18.0, lng:8.5},
+  {country:566, name:'スクル文化的景観', type:'cultural', lat:10.83, lng:13.57},
+  {country:566, name:'オスン＝オソボの聖なる森', type:'cultural', lat:7.77, lng:4.55},
+  {country:686, name:'ゴレ島', type:'cultural', lat:14.67, lng:-17.40},
+  {country:686, name:'ジュジ国立鳥類保護区', type:'natural', lat:16.36, lng:-16.24},
+  {country:690, name:'アルダブラ環礁', type:'natural', lat:-9.4, lng:46.3},
+  {country:690, name:'メイ渓谷自然保護区', type:'natural', lat:-4.33, lng:55.74},
+  {country:710, name:'ロベン島', type:'cultural', lat:-33.81, lng:18.37},
+  {country:710, name:'人類のゆりかご', type:'cultural', lat:-25.90, lng:27.72},
+  {country:710, name:'ケープ植物区保護地域群（テーブルマウンテン等）', type:'natural', lat:-34.0, lng:18.4},
+  {country:729, name:'メロエ島の考古遺跡群', type:'cultural', lat:16.94, lng:33.75},
+  {country:834, name:'キリマンジャロ国立公園', type:'natural', lat:-3.07, lng:37.35},
+  {country:834, name:'セレンゲティ国立公園', type:'natural', lat:-2.33, lng:34.83},
+  {country:834, name:'ンゴロンゴロ保全地域', type:'mixed', lat:-3.16, lng:35.58},
+  {country:834, name:'ザンジバル島ストーン・タウン', type:'cultural', lat:-6.16, lng:39.19},
+  {country:768, name:'クタマクの文化的景観', type:'cultural', lat:10.35, lng:0.85},
+  {country:788, name:'カルタゴの考古遺跡', type:'cultural', lat:36.85, lng:10.32},
+  {country:788, name:'カイルアン', type:'cultural', lat:35.68, lng:10.10},
+  {country:788, name:'エル・ジェムの円形闘技場', type:'cultural', lat:35.30, lng:10.71},
+  {country:800, name:'ブウィンディ原生国立公園', type:'natural', lat:-1.05, lng:29.65},
+  {country:800, name:'ルウェンゾリ山地国立公園', type:'natural', lat:0.35, lng:29.95},
+  {country:800, name:'カスビのブガンダ王墓', type:'cultural', lat:0.34, lng:32.55},
+  {country:894, name:'ヴィクトリアの滝（ザンビア側）', type:'natural', lat:-17.93, lng:25.85},
+  {country:716, name:'グレート・ジンバブエ遺跡', type:'cultural', lat:-20.27, lng:30.93},
+  {country:716, name:'ヴィクトリアの滝（ジンバブエ側）', type:'natural', lat:-17.92, lng:25.86}
+];
+
+// ===================== ユーティリティ =====================
+function escapeHTML(str){
+  return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function flagEmoji(code){
+  return code.toUpperCase().replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt(0)));
+}
+
+function formatPopulation(pop){
+  if(typeof pop === 'string') return escapeHTML(pop);
+  const man = Math.round(pop * 100); // 100万人 = 1万人単位に変換
+  const oku = Math.floor(man / 10000);
+  const rest = man % 10000;
+  if(oku > 0){
+    return `${oku}億${rest.toLocaleString()}万人`;
+  }
+  return `${rest.toLocaleString()}万人`;
+}
+
+function formatGDP(c){
+  if(c.gdpRank === null) return 'データなし（IMF未公表）';
+  const oku = Math.round(c.gdpB * 10); // 10億USドル -> 億USドル
+  return `<span class="gdp-rank-badge">アフリカ内 ${c.gdpRank}位</span>／53か国中　約${oku.toLocaleString()}億USドル`;
+}
+
+// ===================== 並び替え・選択リスト =====================
+const sortSelect = document.getElementById('sortSelect');
+const countrySelect = document.getElementById('countrySelect');
+const profileCard = document.getElementById('profileCard');
+const emptyState = document.getElementById('emptyState');
+const mapNote = document.getElementById('mapNote');
+
+function sortedCountries(mode){
+  const arr = [...COUNTRIES];
+  if(mode === 'alpha'){
+    arr.sort((a,b) => a.en.localeCompare(b.en));
+  } else if(mode === 'pop'){
+    arr.sort((a,b) => {
+      const pa = typeof a.pop === 'number' ? a.pop : -1;
+      const pb = typeof b.pop === 'number' ? b.pop : -1;
+      return pb - pa;
+    });
+  } else { // gdp
+    arr.sort((a,b) => {
+      const ra = a.gdpRank === null ? 9999 : a.gdpRank;
+      const rb = b.gdpRank === null ? 9999 : b.gdpRank;
+      return ra - rb;
+    });
+  }
+  return arr;
+}
+
+function populateCountrySelect(mode){
+  const prevValue = countrySelect.value;
+  countrySelect.innerHTML = '';
+  const optAll = document.createElement('option');
+  optAll.value = '';
+  optAll.textContent = '－－全ての国の地図－－';
+  countrySelect.appendChild(optAll);
+
+  sortedCountries(mode).forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    let suffix = '';
+    if(mode === 'gdp') suffix = c.gdpRank ? `（GDP ${c.gdpRank}位）` : '（GDPデータなし）';
+    if(mode === 'pop') suffix = typeof c.pop === 'number' ? `（${formatPopulation(c.pop)}）` : '';
+    opt.textContent = `${flagEmoji(c.code)} ${c.ja}${suffix}`;
+    countrySelect.appendChild(opt);
+  });
+
+  if(prevValue !== '' && COUNTRY_BY_ID[prevValue]){
+    countrySelect.value = prevValue;
+  }
+}
+
+populateCountrySelect('gdp');
+
+sortSelect.addEventListener('change', () => {
+  populateCountrySelect(sortSelect.value);
+});
+
+// ===================== 地図 =====================
+const map = L.map('map', { scrollWheelZoom: false, zoomSnap: 0 }).setView(AFRICA_CENTER, AFRICA_ZOOM);
+// ラベル無しの背景タイルを使用し、国名等の文字表示は全て日本語の独自ラベルで行う
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+  maxZoom: 18,
+  subdomains: 'abcd'
+}).addTo(map);
+
+let AFRICA_BOUNDS = null;
+
+function fitAfricaView(){
+  if(!AFRICA_BOUNDS) return;
+  map.fitBounds(AFRICA_BOUNDS, {padding:[20,20]});
+  map.setZoom(map.getZoom() + 0.35);
+}
+const countryHandles = {}; // id -> {kind:'poly'|'marker', layer, defaultReset(), select(), bounds()}
+
+// Leaflet doesn't read CSS vars directly, so define actual colors here
+const COLOR_DEFAULT_FILL = '#EAD9B6';
+const COLOR_DEFAULT_STROKE = '#8A6A3F';
+const COLOR_SELECTED_FILL = '#D97B29';
+const COLOR_SELECTED_STROKE = '#3B2416';
+
+function polyStyle(selected){
+  return selected
+    ? { fillColor: COLOR_SELECTED_FILL, color: COLOR_SELECTED_STROKE, weight: 2.5, fillOpacity: 0.9 }
+    : { fillColor: COLOR_DEFAULT_FILL, color: COLOR_DEFAULT_STROKE, weight: 1, fillOpacity: 0.75 };
+}
+
+function markerIcon(selected){
+  const size = selected ? 20 : 14;
+  return L.divIcon({
+    className: '',
+    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${selected ? COLOR_SELECTED_FILL : COLOR_DEFAULT_FILL};border:2px solid ${selected ? COLOR_SELECTED_STROKE : COLOR_DEFAULT_STROKE};box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>`,
+    iconSize:[size,size], iconAnchor:[size/2,size/2]
+  });
+}
+
+function clearAllHighlights(){
+  Object.values(countryHandles).forEach(h => h.select(false));
+}
+
+function buildMapFromGeoJSON(topology){
+  const geo = topojson.feature(topology, topology.objects.countries);
+  const africaFeatures = geo.features.filter(f => COUNTRY_BY_ID[Number(f.id)]);
+  const matchedIds = new Set(africaFeatures.map(f => Number(f.id)));
+
+  const africaLayerGroup = L.geoJSON(africaFeatures, {
+    style: () => polyStyle(false),
+    onEachFeature: (feature, layer) => {
+      const id = Number(feature.id);
+      const c = COUNTRY_BY_ID[id];
+      layer.bindTooltip(escapeHTML(c.ja), {className:'country-label-permanent', permanent:true, direction:'center', opacity:0.9});
+      layer.on('click', () => selectCountry(id, {fly:false}));
+      layer.on('mouseover', () => { if(countrySelect.value != id) layer.setStyle({fillColor: '#DFC694'}); });
+      layer.on('mouseout', () => { const h = countryHandles[id]; if(h) h.select(countrySelect.value == id); });
+      countryHandles[id] = {
+        kind: 'poly',
+        layer,
+        select: (on) => layer.setStyle(polyStyle(on)),
+        bounds: () => layer.getBounds()
+      };
+    }
+  }).addTo(map);
+
+  AFRICA_BOUNDS = africaLayerGroup.getBounds();
+  fitAfricaView();
+
+  // 地図データに含まれない小さな島しょ国は丸印で代替表示
+  const missing = COUNTRIES.filter(c => !matchedIds.has(c.id));
+  if(missing.length){
+    missing.forEach(c => {
+      const m = L.marker([c.lat, c.lng], {icon: markerIcon(false)}).addTo(map);
+      m.bindTooltip(escapeHTML(c.ja), {className:'country-label-permanent', permanent:true, direction:'right', opacity:0.9});
+      m.on('click', () => selectCountry(c.id, {fly:false}));
+      countryHandles[c.id] = {
+        kind: 'marker',
+        layer: m,
+        select: (on) => m.setIcon(markerIcon(on)),
+        bounds: () => L.latLngBounds([c.lat - 2, c.lng - 2], [c.lat + 2, c.lng + 2])
+      };
+    });
+    mapNote.style.display = 'block';
+    mapNote.textContent = `地図データの解像度の都合上、次の国は丸印で表示しています: ${missing.map(c => c.ja).join(' / ')}`;
+  }
+}
+
+function buildFallbackMarkersOnly(){
+  // GeoJSON取得に失敗した場合、全ての国を首都位置の丸印で表示
+  COUNTRIES.forEach(c => {
+    const m = L.marker([c.lat, c.lng], {icon: markerIcon(false)}).addTo(map);
+    m.bindTooltip(escapeHTML(c.ja), {className:'country-label-permanent', permanent:true, direction:'right', opacity:0.9});
+    m.on('click', () => selectCountry(c.id, {fly:false}));
+    countryHandles[c.id] = {
+      kind: 'marker',
+      layer: m,
+      select: (on) => m.setIcon(markerIcon(on)),
+      bounds: () => L.latLngBounds([c.lat - 2, c.lng - 2], [c.lat + 2, c.lng + 2])
+    };
+  });
+  AFRICA_BOUNDS = L.latLngBounds(COUNTRIES.map(c => [c.lat, c.lng]));
+  fitAfricaView();
+  mapNote.style.display = 'block';
+  mapNote.textContent = '国境の地図データを読み込めなかったため、各国は首都位置の丸印で表示しています。';
+}
+
+fetch('https://unpkg.com/world-atlas@2/countries-50m.json')
+  .then(res => res.json())
+  .then(topology => buildMapFromGeoJSON(topology))
+  .catch(() => buildFallbackMarkersOnly());
+
+// ===================== カード描画 =====================
+function formatHeritage(countryId){
+  const sites = HERITAGE_SITES.filter(s => s.country === countryId);
+  if(sites.length === 0) return '<span style="color:var(--muted);">世界遺産の登録はまだありません</span>';
+  const legend = `<div style="font-size:10.5px;color:var(--muted);margin-bottom:6px;">🟢自然遺産　🟠文化遺産　🟣複合遺産</div>`;
+  const list = sites.map(s => {
+    const color = HERITAGE_TYPE_COLOR[s.type];
+    const label = HERITAGE_TYPE_LABEL[s.type];
+    return `<div style="display:flex;align-items:center;gap:7px;margin:4px 0;">
+      <span style="width:11px;height:11px;border-radius:50%;flex-shrink:0;background:${color};border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,0.2);"></span>
+      <span>${escapeHTML(s.name)}<span style="color:var(--muted);font-size:11px;">（${label}）</span></span>
+    </div>`;
+  }).join('');
+  return legend + list;
+}
+
+function renderProfile(c){
+  profileCard.innerHTML = `
+    <div class="p-header">
+      <div class="flag-badge">${flagEmoji(c.code)}</div>
+      <div>
+        <p class="p-name">${escapeHTML(c.ja)}</p>
+        <p class="p-furi">${escapeHTML(c.en)}</p>
+      </div>
+    </div>
+    <table class="info-table">
+      <tr><td>首都</td><td>${escapeHTML(c.capital)}</td></tr>
+      <tr><td>人口</td><td>${formatPopulation(c.pop)}</td></tr>
+      <tr><td>公用語</td><td>${escapeHTML(c.lang)}</td></tr>
+      <tr><td>GDP</td><td>${formatGDP(c)}</td></tr>
+      <tr><td>概要</td><td>${escapeHTML(c.overview)}</td></tr>
+      <tr><td>世界遺産</td><td>${formatHeritage(c.id)}</td></tr>
+    </table>
+  `;
+}
+
+function showAllCountries(){
+  clearAllHighlights();
+  profileCard.innerHTML = '';
+  profileCard.appendChild(emptyState);
+  emptyState.style.display = 'flex';
+  countrySelect.value = '';
+  if(AFRICA_BOUNDS) fitAfricaView();
+}
+
+function selectCountry(id, opts){
+  opts = opts || {};
+  const c = COUNTRY_BY_ID[id];
+  if(!c) return;
+
+  clearAllHighlights();
+  const h = countryHandles[id];
+  if(h) h.select(true);
+
+  renderProfile(c);
+  countrySelect.value = id;
+
+  // プルダウンからの選択時のみ、その国にズームする（地図クリック時はスケールを維持）
+  if(opts.fly && h){
+    const b = h.bounds();
+    if(b && b.isValid && b.isValid()){
+      map.fitBounds(b, {padding:[60,60], maxZoom: 7});
+    } else if(h.kind === 'marker'){
+      map.setView([c.lat, c.lng], 6);
+    }
+  }
+}
+
+countrySelect.addEventListener('change', () => {
+  const val = countrySelect.value;
+  if(val === ''){
+    showAllCountries();
+    return;
+  }
+  selectCountry(Number(val), {fly:true});
+});
+
+</script>
+
+</body>
+</html>
