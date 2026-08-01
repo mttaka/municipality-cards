@@ -41,8 +41,33 @@
     letter-spacing:.04em;
   }
   .sub{color:var(--muted);font-size:14px;letter-spacing:.02em;}
-  .layout{display:grid;grid-template-columns:0.85fr 1.15fr;gap:20px;}
-  @media (max-width:760px){.layout{grid-template-columns:1fr;}}
+  .dropdowns{margin-bottom:18px;display:flex;flex-direction:column;gap:8px;max-width:420px;}
+  .dropdown{position:relative;}
+  .dropdown-toggle{
+    width:100%;font-family:'Noto Sans JP',sans-serif;font-size:15px;font-weight:500;
+    padding:12px 14px;border-radius:10px;border:1px solid var(--line);
+    background:var(--card);color:var(--ink);cursor:pointer;text-align:left;
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+  }
+  .dropdown-toggle:hover{border-color:var(--clay);}
+  .dropdown-toggle .chev{color:var(--muted);flex-shrink:0;transition:transform .15s ease;}
+  .dropdown.open .dropdown-toggle .chev{transform:rotate(180deg);}
+  .dropdown-menu{
+    position:absolute;top:calc(100% + 6px);left:0;right:0;z-index:30;
+    max-height:340px;overflow-y:auto;
+    background:var(--card);border:1px solid var(--line);border-radius:10px;
+    box-shadow:0 8px 24px rgba(31,58,84,0.12);
+    display:none;
+  }
+  .dropdown.open .dropdown-menu{display:block;}
+  .dropdown-item{
+    display:flex;align-items:center;gap:10px;padding:9px 14px;
+    cursor:pointer;font-size:14px;
+  }
+  .dropdown-item:hover{background:var(--paper);}
+  .dropdown-item.active{background:var(--clay-soft);}
+  .dropdown-item .iname{font-weight:500;}
+  .dropdown-item .ipop{margin-left:auto;color:var(--muted);font-size:12px;white-space:nowrap;}
   .panel{
     background:var(--card);
     border:1px solid var(--line);
@@ -56,22 +81,6 @@
     margin:0 0 10px;
     color:var(--ink-soft);
   }
-  .list{display:flex;flex-direction:column;gap:2px;max-height:520px;overflow-y:auto;}
-  .list-item{
-    display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;
-    cursor:pointer;font-size:13px;border:1px solid transparent;
-  }
-  .list-item:hover{background:var(--paper);}
-  .list-item.active{background:var(--clay-soft);border-color:var(--clay);}
-  .list-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
-  .list-item .lname{font-weight:500;}
-  .list-item .lpop{margin-left:auto;color:var(--muted);font-size:11px;}
-  .list-item .lmap{
-    color:var(--ink-soft);text-decoration:none;flex-shrink:0;
-    width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;
-    border:1px solid var(--line);font-size:12px;
-  }
-  .list-item .lmap:hover{border-color:var(--clay);color:var(--clay);}
 
   .card-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;flex-wrap:wrap;}
   .name{font-family:'Shippori Mincho',serif;font-size:24px;font-weight:700;}
@@ -105,35 +114,34 @@
     border:1px solid var(--line);
   }
   .counter{font-size:12px;color:var(--muted);margin-top:14px;}
-  .pref-select{
-    font-family:'Noto Sans JP',sans-serif;font-size:14px;
-    padding:8px 12px;border-radius:8px;border:1px solid var(--line);
-    background:var(--card);color:var(--ink);cursor:pointer;
-  }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
     <div class="titlebox">
-      <h1 id="prefTitle">市町村カード</h1>
+      <h1>市町村カード</h1>
     </div>
-    <select class="pref-select" id="prefSelect" onchange="selectPref(this.value)"></select>
   </header>
 
-  <div class="layout">
-    <div class="panel">
-      <h2>市町一覧(タップで選択)</h2>
-      <div class="list" id="list"></div>
-      <div class="legend">
-        <span><i class="dotkey" style="background:#1F3A54"></i>10万人以上</span>
-        <span><i class="dotkey" style="background:#4F6B5C"></i>3万〜10万人</span>
-        <span><i class="dotkey" style="background:#B5572E"></i>1万〜3万人</span>
-        <span><i class="dotkey" style="background:#8A7C63"></i>1万人未満</span>
-      </div>
+  <div class="dropdowns">
+    <div class="dropdown" id="prefDropdown">
+      <button type="button" class="dropdown-toggle" onclick="toggleDropdown('prefDropdown')">
+        <span id="prefToggleLabel"></span>
+        <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="dropdown-menu" id="prefMenu"></div>
     </div>
+    <div class="dropdown" id="cityDropdown">
+      <button type="button" class="dropdown-toggle" onclick="toggleDropdown('cityDropdown')">
+        <span id="cityToggleLabel"></span>
+        <svg class="chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9l6 6 6-6"/></svg>
+      </button>
+      <div class="dropdown-menu" id="cityMenu"></div>
+    </div>
+  </div>
 
-    <div class="panel">
+  <div class="panel">
       <div class="card-top">
         <div>
           <div class="reading" id="reading"></div>
@@ -149,9 +157,9 @@
       <iframe class="map-embed" id="mapEmbed" src="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
       <a class="maps-link" id="mapsLink" href="#" target="_blank" rel="noopener">Google マップで実際の場所を見る →</a>
       <div class="counter" id="counter"></div>
-    </div>
   </div>
 </div>
+
 
 <script>
 const prefectures = {
@@ -283,8 +291,6 @@ const prefectures = {
   }
 };
 
-const tierColor = ["#1F3A54","#4F6B5C","#B5572E","#8A7C63"];
-
 let currentPref = "41";
 let current = 0;
 
@@ -294,26 +300,41 @@ function mapsUrlFor(d){
     : `https://www.google.com/maps/search/?api=1&query=${d.lat},${d.lng}`;
 }
 
-function buildPrefSelect(){
-  const sel = document.getElementById('prefSelect');
-  sel.innerHTML = Object.keys(prefectures).map(code=>
-    `<option value="${code}">${prefectures[code].name}</option>`
-  ).join('');
-  sel.value = currentPref;
-}
-
-function buildList(){
-  const list = document.getElementById('list');
-  const municipalities = prefectures[currentPref].municipalities;
-  list.innerHTML = municipalities.map((d,i)=>`
-    <div class="list-item" id="item-${i}">
-      <span class="list-dot" style="background:${tierColor[d.tier]}"></span>
-      <span class="lname" onclick="selectIndex(${i})" style="cursor:pointer;flex:1;">${d.name}</span>
-      <span class="lpop">${d.pop}</span>
-      <a class="lmap" href="${mapsUrlFor(d)}" target="_blank" rel="noopener" title="Googleマップで開く" onclick="event.stopPropagation()"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.5-7-11a7 7 0 0 1 14 0c0 4.5-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></a>
+function buildPrefMenu(){
+  const menu = document.getElementById('prefMenu');
+  menu.innerHTML = Object.keys(prefectures).map(code=>`
+    <div class="dropdown-item${code===currentPref?' active':''}" onclick="selectPref('${code}')">
+      <span class="iname">${prefectures[code].name}</span>
+      <span class="ipop">${prefectures[code].municipalities.length}市区町村</span>
     </div>
   `).join('');
+  document.getElementById('prefToggleLabel').textContent = prefectures[currentPref].name;
 }
+
+function buildCityMenu(){
+  const menu = document.getElementById('cityMenu');
+  const municipalities = prefectures[currentPref].municipalities;
+  menu.innerHTML = municipalities.map((d,i)=>`
+    <div class="dropdown-item${i===current?' active':''}" onclick="selectIndex(${i})">
+      <span class="iname">${d.name}</span>
+      <span class="ipop">${d.pop}</span>
+    </div>
+  `).join('');
+  document.getElementById('cityToggleLabel').textContent = municipalities[current].name;
+}
+
+function toggleDropdown(id){
+  const target = document.getElementById(id);
+  const isOpen = target.classList.contains('open');
+  document.querySelectorAll('.dropdown').forEach(dd=>dd.classList.remove('open'));
+  if(!isOpen) target.classList.add('open');
+}
+
+document.addEventListener('click', function(e){
+  if(!e.target.closest('.dropdown')){
+    document.querySelectorAll('.dropdown').forEach(dd=>dd.classList.remove('open'));
+  }
+});
 
 function tagRender(items, emptyText, cls){
   if(!items.length) return `<span class="empty-note">${emptyText}</span>`;
@@ -323,12 +344,7 @@ function tagRender(items, emptyText, cls){
 function render(){
   const municipalities = prefectures[currentPref].municipalities;
   const d = municipalities[current];
-  document.querySelectorAll('.list-item').forEach(p=>p.classList.remove('active'));
-  const activeItem = document.getElementById('item-'+current);
-  activeItem.classList.add('active');
-  activeItem.scrollIntoView({block:'nearest'});
 
-  document.getElementById('prefTitle').textContent = prefectures[currentPref].name + " 市町村カード";
   document.getElementById('pop').textContent = "人口 " + d.pop + "(概数)";
   document.getElementById('mapsLink').href = mapsUrlFor(d);
   document.getElementById('mapEmbed').src = `https://www.google.com/maps?ll=${d.lat},${d.lng}&z=9&output=embed`;
@@ -342,19 +358,23 @@ function render(){
 }
 
 function selectIndex(i){
-  current = i;
+  current = Number(i);
+  buildCityMenu();
+  document.querySelectorAll('.dropdown').forEach(dd=>dd.classList.remove('open'));
   render();
 }
 
 function selectPref(code){
   currentPref = code;
   current = 0;
-  buildList();
+  buildPrefMenu();
+  buildCityMenu();
+  document.querySelectorAll('.dropdown').forEach(dd=>dd.classList.remove('open'));
   render();
 }
 
-buildPrefSelect();
-buildList();
+buildPrefMenu();
+buildCityMenu();
 render();
 </script>
 </body>
