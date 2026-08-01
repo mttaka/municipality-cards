@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>中南米33か国 データマップ</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://unpkg.com/topojson-client@3/dist/topojson-client.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Noto+Sans+JP:wght@400;500;700;900&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --brown:#3B2416; --brown-deep:#241408; --brown-light:#5A3A22;
+    --gold:#E0A73C; --gold-bright:#F4C868;
+    --terracotta:#C1440E; --green:#3F6B4F;
+    --cream:#F8F4EA; --ink:#14181F; --muted:#6B7280; --line:#DCD5C2;
+    --fill-default:#EAD9B6; --fill-hover:#DFC694; --fill-selected:#D97B29; --stroke-default:#8A6A3F; --stroke-selected:#3B2416;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--cream);color:var(--ink);font-family:'Noto Sans JP',sans-serif;}
+
+  .hero{
+    background:linear-gradient(160deg, #8C4A17, #C1440E 55%, #E0A73C);
+    color:#fff; padding:28px 20px 22px;
+  }
+  .hero-inner{max-width:1100px;margin:0 auto;}
+  .eyebrow{font-family:'Space Mono',monospace;letter-spacing:.22em;font-size:11px;color:var(--gold-bright);text-transform:uppercase;margin:0 0 8px;}
+  .hero h1{font-size:clamp(22px,4vw,30px);font-weight:900;margin:0 0 4px;}
+  .hero p{margin:0;color:rgba(255,255,255,0.85);font-size:13px;}
+
+  main{max-width:1100px;margin:0 auto;padding:22px 20px 60px;}
+
+  .selector-bar{
+    display:flex; gap:12px; align-items:center; flex-wrap:wrap;
+    background:#fff; border:1px solid var(--line); border-radius:14px;
+    padding:16px 18px; margin-bottom:20px;
+  }
+  .selector-bar label{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);letter-spacing:.06em;}
+  select#sortSelect{
+    flex:0 0 auto; min-width:150px;
+    font-family:'Noto Sans JP',sans-serif; font-size:13px; font-weight:700;
+    padding:9px 12px; border-radius:10px; border:1px solid var(--line);
+    background:var(--cream); color:var(--ink);
+  }
+  select#countrySelect{
+    flex:1; min-width:220px;
+    font-family:'Noto Sans JP',sans-serif; font-size:15px; font-weight:700;
+    padding:10px 14px; border-radius:10px; border:1px solid var(--line);
+    background:var(--cream); color:var(--ink); appearance:none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--brown) 50%), linear-gradient(135deg, var(--brown) 50%, transparent 50%);
+    background-position: calc(100% - 20px) center, calc(100% - 15px) center;
+    background-size: 5px 5px, 5px 5px; background-repeat:no-repeat;
+  }
+
+  .layout{display:grid; grid-template-columns: 380px 1fr; gap:20px;}
+  @media (max-width: 860px){ .layout{grid-template-columns:1fr;} }
+
+  .card{
+    background:#fff; border:1px solid var(--line); border-radius:16px;
+    padding:22px; min-height:460px;
+  }
+  .empty-state{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    height:100%; min-height:420px; color:var(--muted); text-align:center; gap:10px;
+  }
+  .empty-state .big{font-size:40px;}
+  .empty-state p{margin:0;font-size:13px;line-height:1.7;}
+
+  .p-header{display:flex;align-items:center;gap:14px;margin-bottom:16px;}
+  .flag-badge{
+    font-size:34px; line-height:1;
+    min-width:56px; height:52px; border-radius:10px;
+    background:linear-gradient(180deg, var(--gold-bright), var(--gold));
+    display:flex; align-items:center; justify-content:center;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,0.06);
+  }
+  .p-name{font-size:19px;font-weight:700;margin:0;}
+  .p-furi{font-family:'Space Mono',monospace;font-size:11px;color:var(--muted);margin:2px 0 0;}
+
+  .info-table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  .info-table tr{border-top:1px dashed var(--line);}
+  .info-table tr:first-child{border-top:none;}
+  .info-table td{padding:9px 4px;vertical-align:top;}
+  .info-table td:first-child{
+    font-family:'Space Mono',monospace;font-size:10.5px;color:var(--terracotta);
+    width:96px; letter-spacing:.04em; padding-top:11px; flex-shrink:0;
+  }
+  .info-table td:last-child{font-weight:500;line-height:1.7;}
+
+  .gdp-rank-badge{
+    display:inline-block; font-family:'Oswald',sans-serif; font-weight:700; font-size:13px;
+    background:var(--green); color:#fff; padding:2px 9px; border-radius:999px; margin-right:6px;
+  }
+
+  #map{width:100%; height:560px; border-radius:16px; border:1px solid var(--line); background:#dce8ef;}
+  .map-toolbar{
+    display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+    margin-top:10px; font-size:12.5px;
+  }
+  .label-toggle{
+    display:inline-flex; align-items:center; gap:7px; cursor:pointer;
+    font-weight:700; color:var(--brown-deep); user-select:none;
+  }
+  .label-toggle input{width:16px;height:16px;cursor:pointer;accent-color:var(--terracotta);}
+  .quiz-hint{color:var(--muted); font-size:11.5px;}
+
+  .map-legend{display:flex;gap:14px;margin-top:10px;font-family:'Space Mono',monospace;font-size:10.5px;color:var(--muted);flex-wrap:wrap;align-items:center;}
+  .map-legend span{display:inline-flex;align-items:center;gap:6px;}
+  .swatch{width:14px;height:14px;border-radius:3px;display:inline-block;border:1px solid rgba(0,0,0,0.15);}
+  .swatch.default{background:var(--fill-default);}
+  .swatch.selected{background:var(--fill-selected);}
+  .dotmark{width:11px;height:11px;border-radius:50%;display:inline-block;background:var(--fill-selected);border:2px solid #fff;box-shadow:0 0 0 1px var(--stroke-selected);}
+
+  .map-note{
+    font-size:12px; color:var(--muted); background:var(--cream);
+    border:1px dashed var(--line); border-radius:10px; padding:10px 14px; margin-top:10px;
+  }
+
+  footer{text-align:center;padding:24px;font-family:'Space Mono',monospace;font-size:10px;color:var(--muted);line-height:1.8;}
+
+  .leaflet-tooltip.country-label-permanent{
+    background:rgba(255,255,255,0.82); border:none; border-radius:4px;
+    box-shadow:none;
+    font-family:'Noto Sans JP',sans-serif; font-size:10.5px; font-weight:700; color:var(--brown-deep);
+    padding:1px 5px; white-space:nowrap; pointer-events:none;
+  }
+  .leaflet-tooltip.country-label-permanent::before{ display:none; }
+
+  .heritage-dot{width:12px;height:12px;border-radius:50%;display:inline-block;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,0.25);}
+  .heritage-dot.natural{background:#2E7D32;}
+  .heritage-dot.cultural{background:#C1440E;}
+  .heritage-dot.mixed{background:#8E44AD;}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="hero-inner">
+    <p class="eyebrow">LATIN AMERICA & CARIBBEAN DATA MAP</p>
+    <h1>中南米33か国 データマップ</h1>
+    <p>中米・カリブ海・南米（国連地域グループ基準）33か国を対象に、国を選ぶとその国のプロフィール（首都・人口・公用語・GDP順位・概要・世界遺産）が表示されます。地図上の国をクリックしても同様にカードが更新されます。</p>
+  </div>
+</div>
+
+<main>
+  <div class="selector-bar">
+    <label for="sortSelect">並び順</label>
+    <select id="sortSelect">
+      <option value="gdp">GDP順</option>
+      <option value="alpha">アルファベット順</option>
+      <option value="pop">人口順</option>
+    </select>
+    <label for="countrySelect">国を選択</label>
+    <select id="countrySelect"></select>
+  </div>
+
+  <div class="layout">
+    <div class="card" id="profileCard">
+      <div class="empty-state" id="emptyState">
+        <div class="big">🌍</div>
+        <p>国を選択すると<br>その国のプロフィールが表示されます<br><br>今は中南米全体を<br>地図上に表示しています</p>
+      </div>
+    </div>
+
+    <div>
+      <div id="map"></div>
+      <div class="map-toolbar">
+        <label class="label-toggle">
+          <input type="checkbox" id="showLabelsToggle">
+          地図に国名を表示する
+        </label>
+        <span class="quiz-hint">（OFFのまま地図だけでどこの国か当ててみよう）</span>
+      </div>
+      <div class="map-legend">
+        <span><span class="swatch default"></span>未選択の国</span>
+        <span><span class="swatch selected"></span>選択中の国</span>
+        <span><span class="dotmark"></span>小さな島しょ国（丸印で表示）</span>
+        <span>※国境データは簡略化された地図を使用しています</span>
+      </div>
+      <div class="map-note" id="mapNote" style="display:none;"></div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  出典: GDP・人口 = IMF World Economic Outlook（2026年4月版、経由: ecodb.net「世界経済のネタ帳」）／首都・公用語・世界遺産等は各種公開情報を基に独自にまとめています。対象国は国連地域グループ（GRULAC）基準の中南米33か国。キューバはIMF統計未収録のため人口は国連推計の目安値、GDPはデータなしとしています。地図は OpenStreetMap（背景）および Natural Earth / world-atlas（国境データ）を使用しています。国境・順位・数値は変動する場合があり、目安としてご利用ください。
+</footer>
+
+<script>
+// ===================== データ =====================
+const COUNTRIES = [
+  {id:28, code:'AG', ja:'アンティグア・バーブーダ', en:'Antigua and Barbuda', capital:'セントジョンズ', lat:17.12, lng:-61.85, pop:0.11, lang:'英語', gdpRank:28, gdpB:2.27, overview:'2つの島からなるカリブ海の小国で、ヨットリゾートとして知られる。要塞跡「ネルソンズ・ドックヤードと関連考古遺跡群」が世界遺産。'},
+  {id:32, code:'AR', ja:'アルゼンチン', en:'Argentina', capital:'ブエノスアイレス', lat:-34.61, lng:-58.38, pop:47.47, lang:'スペイン語', gdpRank:3, gdpB:681.49, overview:'南米南部に広がる大国で、タンゴと牛肉の国として知られる。氷河が連なる「ロス・グラシアレス国立公園」やブラジルと共有する「イグアス国立公園」が世界遺産。'},
+  {id:44, code:'BS', ja:'バハマ', en:'Bahamas', capital:'ナッソー', lat:25.06, lng:-77.35, pop:0.41, lang:'英語', gdpRank:23, gdpB:16.51, overview:'700以上の島々からなるカリブ海のリゾート国。世界遺産の登録はまだない。'},
+  {id:52, code:'BB', ja:'バルバドス', en:'Barbados', capital:'ブリッジタウン', lat:13.10, lng:-59.62, pop:0.29, lang:'英語', gdpRank:24, gdpB:8.02, overview:'カリブ海東端に位置する島国で、ラム酒発祥の地のひとつ。港町「ブリッジタウンの歴史地区とその駐屯地」が世界遺産。'},
+  {id:84, code:'BZ', ja:'ベリーズ', en:'Belize', capital:'ベルモパン', lat:17.25, lng:-88.77, pop:0.42, lang:'英語', gdpRank:26, gdpB:3.33, overview:'中米で唯一英語を公用語とする国。世界2位の規模を誇るサンゴ礁「ベリーズ・バリアリーフ保護区」が世界遺産（自然遺産）。'},
+  {id:68, code:'BO', ja:'ボリビア', en:'Bolivia', capital:'スクレ（憲法上の首都）／ラパス（政府所在地）', lat:-16.50, lng:-68.15, pop:12.58, lang:'スペイン語（先住民族語など36言語も公用語）', gdpRank:14, gdpB:64.25, overview:'南米で最も標高の高い首都機能を持つ内陸国。銀鉱山で栄えた「ポトシ市街」やインカ以前の遺跡「ティワナク」が世界遺産。'},
+  {id:76, code:'BR', ja:'ブラジル', en:'Brazil', capital:'ブラジリア', lat:-15.79, lng:-47.88, pop:213.36, lang:'ポルトガル語', gdpRank:1, gdpB:2279.92, overview:'南米最大の面積・人口・経済規模を持つ国。計画都市「ブラジリア」（文化遺産）や、アルゼンチンと共有する「イグアス国立公園」（自然遺産）が世界遺産。'},
+  {id:152, code:'CL', ja:'チリ', en:'Chile', capital:'サンティアゴ', lat:-33.45, lng:-70.67, pop:20.04, lang:'スペイン語', gdpRank:5, gdpB:355.35, overview:'南北に細長い国土を持ち、銅の産出量は世界一。モアイ像で知られる「ラパ・ヌイ国立公園」（イースター島）が世界遺産。'},
+  {id:170, code:'CO', ja:'コロンビア', en:'Colombia', capital:'ボゴタ', lat:4.71, lng:-74.07, pop:53.05, lang:'スペイン語', gdpRank:4, gdpB:457.41, overview:'南米で2番目に人口の多い国で、コーヒーの名産地。植民地時代の港町「カルタヘナ歴史地区」と「コーヒーの文化的景観」が世界遺産。'},
+  {id:188, code:'CR', ja:'コスタリカ', en:'Costa Rica', capital:'サンホセ', lat:9.93, lng:-84.08, pop:5.37, lang:'スペイン語', gdpRank:10, gdpB:102.90, overview:'軍隊を持たないことで知られるエコツーリズム大国。パナマと共有する「タラマンカ山脈保護区群」やダイビングの聖地「ココ島国立公園」が世界遺産（自然遺産）。'},
+  {id:192, code:'CU', ja:'キューバ', en:'Cuba', capital:'ハバナ', lat:23.13, lng:-82.38, pop:'約1,090万人（国連推計）', lang:'スペイン語', gdpRank:null, gdpB:null, overview:'社会主義体制を続けるカリブ海最大の島国。「オールド・ハバナとその要塞群」や葉巻の産地「ビニャーレス渓谷」が世界遺産。GDP統計はIMFに未収録。'},
+  {id:212, code:'DM', ja:'ドミニカ国', en:'Dominica', capital:'ロゾー', lat:15.30, lng:-61.39, pop:0.08, lang:'英語', gdpRank:32, gdpB:0.74, overview:'火山と温泉が点在する「カリブ海の自然の島」。火山地形が広がる「モーン・トロワ・ピトン国立公園」が世界遺産（自然遺産）。'},
+  {id:214, code:'DO', ja:'ドミニカ共和国', en:'Dominican Republic', capital:'サントドミンゴ', lat:18.49, lng:-69.89, pop:10.89, lang:'スペイン語', gdpRank:8, gdpB:127.90, overview:'イスパニョーラ島の東側を占める、カリブ海屈指のリゾート・野球大国。新大陸最古のヨーロッパ都市「サントドミンゴ植民地都市」が世界遺産。'},
+  {id:218, code:'EC', ja:'エクアドル', en:'Ecuador', capital:'キト', lat:-0.23, lng:-78.52, pop:18.10, lang:'スペイン語（先住民語も公用語）', gdpRank:7, gdpB:130.32, overview:'赤道直下の国で、独自の生態系で有名な「ガラパゴス諸島」（自然遺産）と、良好な保存状態の「キト市街」（文化遺産）が世界遺産。'},
+  {id:222, code:'SV', ja:'エルサルバドル', en:'El Salvador', capital:'サンサルバドル', lat:13.69, lng:-89.22, pop:6.38, lang:'スペイン語', gdpRank:17, gdpB:37.27, overview:'中米で最も面積の小さい国。火山灰に埋もれたマヤの農村遺跡「ホヤ・デ・セレン遺跡」が世界遺産。'},
+  {id:308, code:'GD', ja:'グレナダ', en:'Grenada', capital:'セントジョージズ', lat:12.06, lng:-61.75, pop:0.12, lang:'英語', gdpRank:29, gdpB:1.42, overview:'ナツメグの生産で知られる「スパイスの島」。世界遺産の登録はまだない。'},
+  {id:320, code:'GT', ja:'グアテマラ', en:'Guatemala', capital:'グアテマラシティ', lat:14.63, lng:-90.51, pop:18.66, lang:'スペイン語', gdpRank:9, gdpB:121.11, overview:'中米で最も人口の多い国で、マヤ文明の中心地のひとつ。密林に眠る古代都市「ティカル国立公園」（複合遺産）と植民地時代の街並み「アンティグア・グアテマラ」が世界遺産。'},
+  {id:328, code:'GY', ja:'ガイアナ', en:'Guyana', capital:'ジョージタウン', lat:6.80, lng:-58.16, pop:1.00, lang:'英語', gdpRank:19, gdpB:27.10, overview:'南米で唯一英語を公用語とする国で、国土の大部分を熱帯雨林が占める。世界遺産の登録はまだない。'},
+  {id:332, code:'HT', ja:'ハイチ', en:'Haiti', capital:'ポルトープランス', lat:18.59, lng:-72.31, pop:12.56, lang:'フランス語、ハイチ・クレオール語', gdpRank:18, gdpB:32.10, overview:'1804年に世界初の黒人共和国として独立を果たした国。独立記念の要塞群「国立史跡公園－シタデル、サンスーシ、ラミエ」が世界遺産。'},
+  {id:340, code:'HN', ja:'ホンジュラス', en:'Honduras', capital:'テグシガルパ', lat:14.10, lng:-87.22, pop:11.01, lang:'スペイン語', gdpRank:16, gdpB:39.69, overview:'中米最大級のマヤ遺跡を持つ国。彫刻美術で知られる「マヤ遺跡コパン」（文化遺産）と、危機遺産に指定される熱帯雨林「リオ・プラタノ生物圏保護区」（自然遺産）が世界遺産。'},
+  {id:388, code:'JM', ja:'ジャマイカ', en:'Jamaica', capital:'キングストン', lat:17.97, lng:-76.79, pop:2.75, lang:'英語', gdpRank:21, gdpB:22.31, overview:'レゲエとウサイン・ボルトを生んだ島国。山岳の生態系と逃亡奴隷の歴史を伝える「ブルー・ジョン・クロウ山脈」が世界遺産（複合遺産）。'},
+  {id:484, code:'MX', ja:'メキシコ', en:'Mexico', capital:'メキシコシティ', lat:19.43, lng:-99.13, pop:133.37, lang:'スペイン語（事実上の公用語、先住民語など68言語も国語として認定）', gdpRank:2, gdpB:1832.64, overview:'中南米最大の経済規模を持つ国で、世界遺産登録数は米大陸最多クラス。マヤの古代都市「チチェン・イッツァ」やアステカの都だった「メキシコシティ歴史地区とソチミルコ」が代表的。'},
+  {id:558, code:'NI', ja:'ニカラグア', en:'Nicaragua', capital:'マナグア', lat:12.11, lng:-86.24, pop:6.66, lang:'スペイン語', gdpRank:22, gdpB:22.24, overview:'中米最大の面積を持ち、多数の火山湖が点在する国。植民地時代の廃墟の街「レオン・ビエホの遺跡群」が世界遺産。'},
+  {id:591, code:'PA', ja:'パナマ', en:'Panama', capital:'パナマシティ', lat:8.98, lng:-79.52, pop:4.57, lang:'スペイン語', gdpRank:12, gdpB:90.46, overview:'太平洋と大西洋を結ぶパナマ運河で知られる国。植民地時代の要塞跡「パナマビエホ遺跡とパナマ市街歴史地区」やコスタリカと共有する「タラマンカ山脈保護区群」が世界遺産。'},
+  {id:600, code:'PY', ja:'パラグアイ', en:'Paraguay', capital:'アスンシオン', lat:-25.30, lng:-57.64, pop:6.42, lang:'スペイン語、グアラニー語', gdpRank:15, gdpB:49.36, overview:'南米で数少ない内陸国のひとつ。イエズス会の伝道所跡「ラ・サンティシマ・トリニダー・デ・パラナとヘスス・デ・タバランゲの遺跡」が世界遺産。'},
+  {id:604, code:'PE', ja:'ペルー', en:'Peru', capital:'リマ', lat:-12.05, lng:-77.04, pop:34.41, lang:'スペイン語（ケチュア語、アイマラ語も公用語）', gdpRank:6, gdpB:341.03, overview:'かつてのインカ帝国の中心地。空中都市「マチュ・ピチュの歴史保護区」（複合遺産）や地上絵で有名な「ナスカとパルパの地上絵」が世界遺産。'},
+  {id:659, code:'KN', ja:'セントクリストファー・ネーヴィス', en:'Saint Kitts and Nevis', capital:'バセテール', lat:17.30, lng:-62.72, pop:0.05, lang:'英語', gdpRank:31, gdpB:1.08, overview:'カリブ海で最も人口の少ない主権国家。要塞遺跡「ブリムストーン・ヒル要塞国立公園」が世界遺産。'},
+  {id:662, code:'LC', ja:'セントルシア', en:'Saint Lucia', capital:'カストリーズ', lat:14.01, lng:-60.99, pop:0.18, lang:'英語', gdpRank:27, gdpB:2.65, overview:'火山性の尖峰が特徴的な島国。2つの尖塔状火山「ピトン管理地域」が世界遺産（自然遺産）。'},
+  {id:670, code:'VC', ja:'セントビンセント・グレナディーン', en:'Saint Vincent and the Grenadines', capital:'キングスタウン', lat:13.16, lng:-61.22, pop:0.11, lang:'英語', gdpRank:30, gdpB:1.18, overview:'32の島々からなる小さな島嶼国。世界遺産の登録はまだない。'},
+  {id:740, code:'SR', ja:'スリナム', en:'Suriname', capital:'パラマリボ', lat:5.87, lng:-55.17, pop:0.66, lang:'オランダ語', gdpRank:25, gdpB:4.66, overview:'南米で唯一オランダ語を公用語とする国。手つかずの熱帯雨林「中央スリナム自然保護区」と旧市街「パラマリボ歴史的市街地区」が世界遺産。'},
+  {id:780, code:'TT', ja:'トリニダード・トバゴ', en:'Trinidad and Tobago', capital:'ポートオブスペイン', lat:10.65, lng:-61.52, pop:1.44, lang:'英語', gdpRank:20, gdpB:25.93, overview:'カリビアン・カーニバルとスティールパン発祥の国。世界遺産の登録はまだない。'},
+  {id:858, code:'UY', ja:'ウルグアイ', en:'Uruguay', capital:'モンテビデオ', lat:-34.90, lng:-56.16, pop:3.49, lang:'スペイン語', gdpRank:13, gdpB:85.58, overview:'南米で最も安定した民主主義・高い生活水準を誇る国のひとつ。植民地時代の港町「コロニア・デル・サクラメント市街歴史地区」が世界遺産。'},
+  {id:862, code:'VE', ja:'ベネズエラ', en:'Venezuela', capital:'カラカス', lat:10.48, lng:-66.90, pop:26.67, lang:'スペイン語', gdpRank:11, gdpB:99.66, overview:'世界最大級の原油埋蔵量を持つ国で、テーブルマウンテン（テプイ）が点在する秘境「カナイマ国立公園」が世界遺産。港町「コロとその港」は危機遺産に指定されている。'}
+];
+
+const COUNTRY_BY_ID = {};
+COUNTRIES.forEach(c => COUNTRY_BY_ID[c.id] = c);
+
+const REGION_CENTER = [-15, -65];
+const REGION_ZOOM = 3;
+const GDP_TOTAL = COUNTRIES.filter(c => c.gdpRank !== null).length;
+
+// 世界遺産（概要欄で触れた主な登録物件。type: natural=自然遺産 / cultural=文化遺産 / mixed=複合遺産）
+const HERITAGE_TYPE_COLOR = { natural:'#2E7D32', cultural:'#C1440E', mixed:'#8E44AD' };
+const HERITAGE_TYPE_LABEL = { natural:'自然遺産', cultural:'文化遺産', mixed:'複合遺産' };
+
+const HERITAGE_SITES = [
+  {country:28, name:'ネルソンズ・ドックヤードと関連考古遺跡群', type:'cultural', lat:17.00, lng:-61.75},
+  {country:32, name:'ロス・グラシアレス国立公園', type:'natural', lat:-50.0, lng:-73.3},
+  {country:32, name:'イグアス国立公園（アルゼンチン側）', type:'natural', lat:-25.68, lng:-54.44},
+  {country:32, name:'ケブラダ・デ・ウマワカ', type:'cultural', lat:-23.3, lng:-65.35},
+  {country:52, name:'ブリッジタウンの歴史地区とその駐屯地', type:'cultural', lat:13.10, lng:-59.62},
+  {country:84, name:'ベリーズ・バリアリーフ保護区', type:'natural', lat:17.3, lng:-87.5},
+  {country:68, name:'ポトシ市街', type:'cultural', lat:-19.59, lng:-65.75},
+  {country:68, name:'ティワナク', type:'cultural', lat:-16.55, lng:-68.67},
+  {country:76, name:'ブラジリア', type:'cultural', lat:-15.79, lng:-47.88},
+  {country:76, name:'イグアス国立公園（ブラジル側）', type:'natural', lat:-25.60, lng:-54.55},
+  {country:76, name:'リオデジャネイロ：カリオカの景観群', type:'cultural', lat:-22.95, lng:-43.20},
+  {country:152, name:'ラパ・ヌイ国立公園（イースター島）', type:'cultural', lat:-27.12, lng:-109.35},
+  {country:152, name:'バルパライソ港市街の歴史地区', type:'cultural', lat:-33.05, lng:-71.62},
+  {country:170, name:'カルタヘナ歴史地区', type:'cultural', lat:10.42, lng:-75.55},
+  {country:170, name:'コーヒーの文化的景観', type:'cultural', lat:4.53, lng:-75.68},
+  {country:188, name:'タラマンカ山脈保護区群（コスタリカ側）', type:'natural', lat:9.5, lng:-83.3},
+  {country:188, name:'ココ島国立公園', type:'natural', lat:5.53, lng:-87.06},
+  {country:192, name:'オールド・ハバナとその要塞群', type:'cultural', lat:23.14, lng:-82.35},
+  {country:192, name:'ビニャーレス渓谷', type:'cultural', lat:22.62, lng:-83.71},
+  {country:212, name:'モーン・トロワ・ピトン国立公園', type:'natural', lat:15.33, lng:-61.30},
+  {country:214, name:'サントドミンゴ植民地都市', type:'cultural', lat:18.47, lng:-69.88},
+  {country:218, name:'ガラパゴス諸島', type:'natural', lat:-0.6, lng:-90.5},
+  {country:218, name:'キト市街', type:'cultural', lat:-0.22, lng:-78.51},
+  {country:222, name:'ホヤ・デ・セレン遺跡', type:'cultural', lat:13.68, lng:-89.36},
+  {country:320, name:'ティカル国立公園', type:'mixed', lat:17.22, lng:-89.62},
+  {country:320, name:'アンティグア・グアテマラ', type:'cultural', lat:14.56, lng:-90.73},
+  {country:332, name:'国立史跡公園－シタデル、サンスーシ、ラミエ', type:'cultural', lat:19.57, lng:-72.24},
+  {country:340, name:'マヤ遺跡コパン', type:'cultural', lat:14.84, lng:-89.14},
+  {country:340, name:'リオ・プラタノ生物圏保護区', type:'natural', lat:15.6, lng:-84.9},
+  {country:388, name:'ブルー・ジョン・クロウ山脈', type:'mixed', lat:18.05, lng:-76.57},
+  {country:484, name:'メキシコシティ歴史地区とソチミルコ', type:'cultural', lat:19.43, lng:-99.13},
+  {country:484, name:'チチェン・イッツァ古代都市', type:'cultural', lat:20.68, lng:-88.57},
+  {country:484, name:'シアン・カアン', type:'natural', lat:19.6, lng:-87.6},
+  {country:558, name:'レオン・ビエホの遺跡群', type:'cultural', lat:12.44, lng:-86.89},
+  {country:591, name:'パナマビエホ遺跡とパナマ市街歴史地区', type:'cultural', lat:8.95, lng:-79.53},
+  {country:591, name:'ダリエン国立公園', type:'natural', lat:8.0, lng:-77.7},
+  {country:600, name:'ラ・サンティシマ・トリニダー・デ・パラナの伝道所遺跡', type:'cultural', lat:-27.0, lng:-55.6},
+  {country:604, name:'マチュ・ピチュの歴史保護区', type:'mixed', lat:-13.16, lng:-72.55},
+  {country:604, name:'ナスカとパルパの地上絵', type:'cultural', lat:-14.72, lng:-75.13},
+  {country:604, name:'マヌー国立公園', type:'natural', lat:-11.8, lng:-71.5},
+  {country:659, name:'ブリムストーン・ヒル要塞国立公園', type:'cultural', lat:17.35, lng:-62.83},
+  {country:662, name:'ピトン管理地域', type:'natural', lat:13.81, lng:-61.07},
+  {country:740, name:'中央スリナム自然保護区', type:'natural', lat:3.9, lng:-56.1},
+  {country:740, name:'パラマリボ歴史的市街地区', type:'cultural', lat:5.87, lng:-55.17},
+  {country:858, name:'コロニア・デル・サクラメント市街歴史地区', type:'cultural', lat:-34.47, lng:-57.84},
+  {country:862, name:'カナイマ国立公園', type:'natural', lat:5.8, lng:-62.5},
+  {country:862, name:'コロとその港', type:'cultural', lat:11.41, lng:-69.68}
+];
+
+// ===================== ユーティリティ =====================
+function escapeHTML(str){
+  return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function flagEmoji(code){
+  return code.toUpperCase().replace(/./g, c => String.fromCodePoint(127397 + c.charCodeAt(0)));
+}
+
+function formatPopulation(pop){
+  if(typeof pop === 'string') return escapeHTML(pop);
+  const man = Math.round(pop * 100); // 100万人 = 1万人単位に変換
+  const oku = Math.floor(man / 10000);
+  const rest = man % 10000;
+  if(oku > 0){
+    return `${oku}億${rest.toLocaleString()}万人`;
+  }
+  return `${rest.toLocaleString()}万人`;
+}
+
+function formatGDP(c){
+  if(c.gdpRank === null) return 'データなし（IMF未公表）';
+  const oku = Math.round(c.gdpB * 10); // 10億USドル -> 億USドル
+  return `<span class="gdp-rank-badge">中南米内 ${c.gdpRank}位</span>／32か国中　約${oku.toLocaleString()}億USドル`;
+}
+
+// ===================== 並び替え・選択リスト =====================
+const sortSelect = document.getElementById('sortSelect');
+const countrySelect = document.getElementById('countrySelect');
+const profileCard = document.getElementById('profileCard');
+const emptyState = document.getElementById('emptyState');
+const mapNote = document.getElementById('mapNote');
+const showLabelsToggle = document.getElementById('showLabelsToggle');
+
+function sortedCountries(mode){
+  const arr = [...COUNTRIES];
+  if(mode === 'alpha'){
+    arr.sort((a,b) => a.en.localeCompare(b.en));
+  } else if(mode === 'pop'){
+    arr.sort((a,b) => {
+      const pa = typeof a.pop === 'number' ? a.pop : -1;
+      const pb = typeof b.pop === 'number' ? b.pop : -1;
+      return pb - pa;
+    });
+  } else { // gdp
+    arr.sort((a,b) => {
+      const ra = a.gdpRank === null ? 9999 : a.gdpRank;
+      const rb = b.gdpRank === null ? 9999 : b.gdpRank;
+      return ra - rb;
+    });
+  }
+  return arr;
+}
+
+function populateCountrySelect(mode){
+  const prevValue = countrySelect.value;
+  countrySelect.innerHTML = '';
+  const optAll = document.createElement('option');
+  optAll.value = '';
+  optAll.textContent = '－－全ての国の地図－－';
+  countrySelect.appendChild(optAll);
+
+  sortedCountries(mode).forEach(c => {
+    const opt = document.createElement('option');
+    opt.value = c.id;
+    let suffix = '';
+    if(mode === 'gdp') suffix = c.gdpRank ? `（GDP ${c.gdpRank}位）` : '（GDPデータなし）';
+    if(mode === 'pop') suffix = typeof c.pop === 'number' ? `（${formatPopulation(c.pop)}）` : '';
+    opt.textContent = `${flagEmoji(c.code)} ${c.ja}${suffix}`;
+    countrySelect.appendChild(opt);
+  });
+
+  if(prevValue !== '' && COUNTRY_BY_ID[prevValue]){
+    countrySelect.value = prevValue;
+  }
+}
+
+populateCountrySelect('gdp');
+
+sortSelect.addEventListener('change', () => {
+  populateCountrySelect(sortSelect.value);
+});
+
+// ===================== 地図 =====================
+const map = L.map('map', { scrollWheelZoom: false, zoomSnap: 0 }).setView(REGION_CENTER, REGION_ZOOM);
+// ラベル無しの背景タイルを使用し、国名等の文字表示は全て日本語の独自ラベルで行う
+L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+  maxZoom: 18,
+  subdomains: 'abcd'
+}).addTo(map);
+
+let REGION_BOUNDS = null;
+
+function fitRegionView(){
+  if(!REGION_BOUNDS) return;
+  map.fitBounds(REGION_BOUNDS, {padding:[20,20]});
+  map.setZoom(map.getZoom() + 0.35);
+}
+const countryHandles = {}; // id -> {kind:'poly'|'marker', layer, defaultReset(), select(), bounds()}
+
+// Leaflet doesn't read CSS vars directly, so define actual colors here
+const COLOR_DEFAULT_FILL = '#EAD9B6';
+const COLOR_DEFAULT_STROKE = '#8A6A3F';
+const COLOR_SELECTED_FILL = '#D97B29';
+const COLOR_SELECTED_STROKE = '#3B2416';
+
+function polyStyle(selected){
+  return selected
+    ? { fillColor: COLOR_SELECTED_FILL, color: COLOR_SELECTED_STROKE, weight: 2.5, fillOpacity: 0.9 }
+    : { fillColor: COLOR_DEFAULT_FILL, color: COLOR_DEFAULT_STROKE, weight: 1, fillOpacity: 0.75 };
+}
+
+function markerIcon(selected){
+  const size = selected ? 20 : 14;
+  return L.divIcon({
+    className: '',
+    html: `<div style="width:${size}px;height:${size}px;border-radius:50%;background:${selected ? COLOR_SELECTED_FILL : COLOR_DEFAULT_FILL};border:2px solid ${selected ? COLOR_SELECTED_STROKE : COLOR_DEFAULT_STROKE};box-shadow:0 1px 4px rgba(0,0,0,0.3);"></div>`,
+    iconSize:[size,size], iconAnchor:[size/2,size/2]
+  });
+}
+
+function clearAllHighlights(){
+  Object.values(countryHandles).forEach(h => h.select(false));
+}
+
+function applyLabelVisibility(){
+  const show = showLabelsToggle.checked;
+  Object.values(countryHandles).forEach(h => {
+    if(show) h.layer.openTooltip(); else h.layer.closeTooltip();
+  });
+}
+
+showLabelsToggle.addEventListener('change', applyLabelVisibility);
+
+function buildMapFromGeoJSON(topology){
+  const geo = topojson.feature(topology, topology.objects.countries);
+  const africaFeatures = geo.features.filter(f => COUNTRY_BY_ID[Number(f.id)]);
+  const matchedIds = new Set(africaFeatures.map(f => Number(f.id)));
+
+  const africaLayerGroup = L.geoJSON(africaFeatures, {
+    style: () => polyStyle(false),
+    onEachFeature: (feature, layer) => {
+      const id = Number(feature.id);
+      const c = COUNTRY_BY_ID[id];
+      layer.bindTooltip(escapeHTML(c.ja), {className:'country-label-permanent', permanent:true, direction:'center', opacity:0.9});
+      layer.on('click', () => selectCountry(id, {fly:false}));
+      layer.on('mouseover', () => { if(countrySelect.value != id) layer.setStyle({fillColor: '#DFC694'}); });
+      layer.on('mouseout', () => { const h = countryHandles[id]; if(h) h.select(countrySelect.value == id); });
+      countryHandles[id] = {
+        kind: 'poly',
+        layer,
+        select: (on) => layer.setStyle(polyStyle(on)),
+        bounds: () => layer.getBounds()
+      };
+    }
+  }).addTo(map);
+
+  REGION_BOUNDS = africaLayerGroup.getBounds();
+  fitRegionView();
+
+  // 地図データに含まれない小さな島しょ国は丸印で代替表示
+  const missing = COUNTRIES.filter(c => !matchedIds.has(c.id));
+  if(missing.length){
+    missing.forEach(c => {
+      const m = L.marker([c.lat, c.lng], {icon: markerIcon(false)}).addTo(map);
+      m.bindTooltip(escapeHTML(c.ja), {className:'country-label-permanent', permanent:true, direction:'right', opacity:0.9});
+      m.on('click', () => selectCountry(c.id, {fly:false}));
+      countryHandles[c.id] = {
+        kind: 'marker',
+        layer: m,
+        select: (on) => m.setIcon(markerIcon(on)),
+        bounds: () => L.latLngBounds([c.lat - 2, c.lng - 2], [c.lat + 2, c.lng + 2])
+      };
+    });
+    mapNote.style.display = 'block';
+    mapNote.textContent = `地図データの解像度の都合上、次の国は丸印で表示しています: ${missing.map(c => c.ja).join(' / ')}`;
+  }
+
+  applyLabelVisibility();
+}
+
+function buildFallbackMarkersOnly(){
+  // GeoJSON取得に失敗した場合、全ての国を首都位置の丸印で表示
+  COUNTRIES.forEach(c => {
+    const m = L.marker([c.lat, c.lng], {icon: markerIcon(false)}).addTo(map);
+    m.bindTooltip(escapeHTML(c.ja), {className:'country-label-permanent', permanent:true, direction:'right', opacity:0.9});
+    m.on('click', () => selectCountry(c.id, {fly:false}));
+    countryHandles[c.id] = {
+      kind: 'marker',
+      layer: m,
+      select: (on) => m.setIcon(markerIcon(on)),
+      bounds: () => L.latLngBounds([c.lat - 2, c.lng - 2], [c.lat + 2, c.lng + 2])
+    };
+  });
+  REGION_BOUNDS = L.latLngBounds(COUNTRIES.map(c => [c.lat, c.lng]));
+  fitRegionView();
+  mapNote.style.display = 'block';
+  mapNote.textContent = '国境の地図データを読み込めなかったため、各国は首都位置の丸印で表示しています。';
+  applyLabelVisibility();
+}
+
+fetch('https://unpkg.com/world-atlas@2/countries-50m.json')
+  .then(res => res.json())
+  .then(topology => buildMapFromGeoJSON(topology))
+  .catch(() => buildFallbackMarkersOnly());
+
+// ===================== カード描画 =====================
+function formatHeritage(countryId){
+  const sites = HERITAGE_SITES.filter(s => s.country === countryId);
+  if(sites.length === 0) return '<span style="color:var(--muted);">世界遺産の登録はまだありません</span>';
+  const legend = `<div style="font-size:10.5px;color:var(--muted);margin-bottom:6px;">🟢自然遺産　🟠文化遺産　🟣複合遺産</div>`;
+  const list = sites.map(s => {
+    const color = HERITAGE_TYPE_COLOR[s.type];
+    const label = HERITAGE_TYPE_LABEL[s.type];
+    return `<div style="display:flex;align-items:center;gap:7px;margin:4px 0;">
+      <span style="width:11px;height:11px;border-radius:50%;flex-shrink:0;background:${color};border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,0.2);"></span>
+      <span>${escapeHTML(s.name)}<span style="color:var(--muted);font-size:11px;">（${label}）</span></span>
+    </div>`;
+  }).join('');
+  return legend + list;
+}
+
+function renderProfile(c){
+  profileCard.innerHTML = `
+    <div class="p-header">
+      <div class="flag-badge">${flagEmoji(c.code)}</div>
+      <div>
+        <p class="p-name">${escapeHTML(c.ja)}</p>
+        <p class="p-furi">${escapeHTML(c.en)}</p>
+      </div>
+    </div>
+    <table class="info-table">
+      <tr><td>首都</td><td>${escapeHTML(c.capital)}</td></tr>
+      <tr><td>人口</td><td>${formatPopulation(c.pop)}</td></tr>
+      <tr><td>公用語</td><td>${escapeHTML(c.lang)}</td></tr>
+      <tr><td>GDP</td><td>${formatGDP(c)}</td></tr>
+      <tr><td>概要</td><td>${escapeHTML(c.overview)}</td></tr>
+      <tr><td>世界遺産</td><td>${formatHeritage(c.id)}</td></tr>
+    </table>
+  `;
+}
+
+function showAllCountries(){
+  clearAllHighlights();
+  profileCard.innerHTML = '';
+  profileCard.appendChild(emptyState);
+  emptyState.style.display = 'flex';
+  countrySelect.value = '';
+  if(REGION_BOUNDS) fitRegionView();
+}
+
+function selectCountry(id, opts){
+  opts = opts || {};
+  const c = COUNTRY_BY_ID[id];
+  if(!c) return;
+
+  clearAllHighlights();
+  const h = countryHandles[id];
+  if(h) h.select(true);
+
+  renderProfile(c);
+  countrySelect.value = id;
+
+  // プルダウンからの選択時のみ、その国にズームする（地図クリック時はスケールを維持）
+  if(opts.fly && h){
+    const b = h.bounds();
+    if(b && b.isValid && b.isValid()){
+      map.fitBounds(b, {padding:[60,60], maxZoom: 7});
+    } else if(h.kind === 'marker'){
+      map.setView([c.lat, c.lng], 6);
+    }
+  }
+}
+
+countrySelect.addEventListener('change', () => {
+  const val = countrySelect.value;
+  if(val === ''){
+    showAllCountries();
+    return;
+  }
+  selectCountry(Number(val), {fly:true});
+});
+
+</script>
+
+</body>
+</html>
