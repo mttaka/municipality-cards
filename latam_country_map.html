@@ -55,6 +55,39 @@
   .layout{display:grid; grid-template-columns: 380px 1fr; gap:20px;}
   @media (max-width: 860px){ .layout{grid-template-columns:1fr;} }
 
+  /* スマホ横向き（ランドスケープ）時：1画面に収まるコンパクト2カラム表示 */
+  @media (max-height: 500px) and (orientation: landscape){
+    html, body{ height:100%; }
+    body{ display:flex; flex-direction:column; overflow:hidden; }
+    .hero{ padding:6px 12px; flex:0 0 auto; }
+    .hero .eyebrow, .hero p{ display:none; }
+    .hero h1{ font-size:14px; margin:0; }
+    main{ flex:1; min-height:0; display:flex; flex-direction:column; padding:6px 10px; overflow:hidden; }
+    .selector-bar{ flex:0 0 auto; padding:6px 8px; gap:6px; margin-bottom:6px; }
+    .selector-bar label{ display:none; }
+    select#sortSelect{ min-width:100px; font-size:11px; padding:5px 8px; flex:0 0 auto; }
+    select#countrySelect{ font-size:12px; padding:5px 8px; min-width:120px; }
+    .layout{ flex:1; min-height:0; display:grid; grid-template-columns:38% 1fr; gap:10px; }
+    .card{ min-height:0; overflow-y:auto; padding:10px; font-size:11px; }
+    .empty-state{ min-height:0; gap:6px; }
+    .empty-state .big{ font-size:22px; }
+    .empty-state p{ font-size:10px; }
+    .p-header{ gap:8px; margin-bottom:8px; }
+    .flag-badge{ font-size:20px; min-width:34px; height:32px; }
+    .p-name{ font-size:13px; }
+    .p-furi{ font-size:9px; }
+    .info-table{ font-size:10.5px; }
+    .info-table td{ padding:5px 3px; }
+    .info-table td:first-child{ width:52px; font-size:9px; padding-top:6px; }
+    .layout > div:last-child{ display:flex; flex-direction:column; min-height:0; }
+    #map{ flex:1; min-height:0; height:auto; }
+    .map-toolbar{ flex:0 0 auto; margin-top:4px; font-size:9px; gap:6px; }
+    .quiz-hint{ display:none; }
+    .map-legend{ flex:0 0 auto; margin-top:4px; font-size:8px; gap:5px; }
+    .map-legend span:last-child{ display:none; }
+    .map-note{ font-size:9px; padding:5px 8px; margin-top:4px; }
+  }
+
   .card{
     background:#fff; border:1px solid var(--line); border-radius:16px;
     padding:22px; min-height:460px;
@@ -191,7 +224,7 @@
 const COUNTRIES = [
   {id:28, code:'AG', ja:'アンティグア・バーブーダ', en:'Antigua and Barbuda', capital:'セントジョンズ', lat:17.12, lng:-61.85, pop:0.11, lang:'英語', gdpRank:28, gdpB:2.27, overview:'2つの島からなるカリブ海の小国で、ヨットリゾートとして知られる。要塞跡「ネルソンズ・ドックヤードと関連考古遺跡群」が世界遺産。'},
   {id:32, code:'AR', ja:'アルゼンチン', en:'Argentina', capital:'ブエノスアイレス', lat:-34.61, lng:-58.38, pop:47.47, lang:'スペイン語', gdpRank:3, gdpB:681.49, overview:'南米南部に広がる大国で、タンゴと牛肉の国として知られる。氷河が連なる「ロス・グラシアレス国立公園」やブラジルと共有する「イグアス国立公園」が世界遺産。'},
-  {id:44, code:'BS', ja:'バハマ', en:'Bahamas', capital:'ナッソー', lat:25.06, lng:-77.35, pop:0.41, lang:'英語', gdpRank:23, gdpB:16.51, overview:'700以上の島々からなるカリブ海のリゾート国。世界遺産の登録はまだない。'},
+  {id:44, code:'BS', ja:'バハマ', en:'Bahamas', capital:'ナッソー', lat:25.06, lng:-77.35, pop:0.41, lang:'英語', gdpRank:23, gdpB:16.51, overview:'700以上の島々からなるカリブ海のリゾート国。'},
   {id:52, code:'BB', ja:'バルバドス', en:'Barbados', capital:'ブリッジタウン', lat:13.10, lng:-59.62, pop:0.29, lang:'英語', gdpRank:24, gdpB:8.02, overview:'カリブ海東端に位置する島国で、ラム酒発祥の地のひとつ。港町「ブリッジタウンの歴史地区とその駐屯地」が世界遺産。'},
   {id:84, code:'BZ', ja:'ベリーズ', en:'Belize', capital:'ベルモパン', lat:17.25, lng:-88.77, pop:0.42, lang:'英語', gdpRank:26, gdpB:3.33, overview:'中米で唯一英語を公用語とする国。世界2位の規模を誇るサンゴ礁「ベリーズ・バリアリーフ保護区」が世界遺産（自然遺産）。'},
   {id:68, code:'BO', ja:'ボリビア', en:'Bolivia', capital:'スクレ（憲法上の首都）／ラパス（政府所在地）', lat:-16.50, lng:-68.15, pop:12.58, lang:'スペイン語（先住民族語など36言語も公用語）', gdpRank:14, gdpB:64.25, overview:'南米で最も標高の高い首都機能を持つ内陸国。銀鉱山で栄えた「ポトシ市街」やインカ以前の遺跡「ティワナク」が世界遺産。'},
@@ -204,9 +237,9 @@ const COUNTRIES = [
   {id:214, code:'DO', ja:'ドミニカ共和国', en:'Dominican Republic', capital:'サントドミンゴ', lat:18.49, lng:-69.89, pop:10.89, lang:'スペイン語', gdpRank:8, gdpB:127.90, overview:'イスパニョーラ島の東側を占める、カリブ海屈指のリゾート・野球大国。新大陸最古のヨーロッパ都市「サントドミンゴ植民地都市」が世界遺産。'},
   {id:218, code:'EC', ja:'エクアドル', en:'Ecuador', capital:'キト', lat:-0.23, lng:-78.52, pop:18.10, lang:'スペイン語（先住民語も公用語）', gdpRank:7, gdpB:130.32, overview:'赤道直下の国で、独自の生態系で有名な「ガラパゴス諸島」（自然遺産）と、良好な保存状態の「キト市街」（文化遺産）が世界遺産。'},
   {id:222, code:'SV', ja:'エルサルバドル', en:'El Salvador', capital:'サンサルバドル', lat:13.69, lng:-89.22, pop:6.38, lang:'スペイン語', gdpRank:17, gdpB:37.27, overview:'中米で最も面積の小さい国。火山灰に埋もれたマヤの農村遺跡「ホヤ・デ・セレン遺跡」が世界遺産。'},
-  {id:308, code:'GD', ja:'グレナダ', en:'Grenada', capital:'セントジョージズ', lat:12.06, lng:-61.75, pop:0.12, lang:'英語', gdpRank:29, gdpB:1.42, overview:'ナツメグの生産で知られる「スパイスの島」。世界遺産の登録はまだない。'},
+  {id:308, code:'GD', ja:'グレナダ', en:'Grenada', capital:'セントジョージズ', lat:12.06, lng:-61.75, pop:0.12, lang:'英語', gdpRank:29, gdpB:1.42, overview:'ナツメグの生産で知られる「スパイスの島」。'},
   {id:320, code:'GT', ja:'グアテマラ', en:'Guatemala', capital:'グアテマラシティ', lat:14.63, lng:-90.51, pop:18.66, lang:'スペイン語', gdpRank:9, gdpB:121.11, overview:'中米で最も人口の多い国で、マヤ文明の中心地のひとつ。密林に眠る古代都市「ティカル国立公園」（複合遺産）と植民地時代の街並み「アンティグア・グアテマラ」が世界遺産。'},
-  {id:328, code:'GY', ja:'ガイアナ', en:'Guyana', capital:'ジョージタウン', lat:6.80, lng:-58.16, pop:1.00, lang:'英語', gdpRank:19, gdpB:27.10, overview:'南米で唯一英語を公用語とする国で、国土の大部分を熱帯雨林が占める。世界遺産の登録はまだない。'},
+  {id:328, code:'GY', ja:'ガイアナ', en:'Guyana', capital:'ジョージタウン', lat:6.80, lng:-58.16, pop:1.00, lang:'英語', gdpRank:19, gdpB:27.10, overview:'南米で唯一英語を公用語とする国で、国土の大部分を熱帯雨林が占める。'},
   {id:332, code:'HT', ja:'ハイチ', en:'Haiti', capital:'ポルトープランス', lat:18.59, lng:-72.31, pop:12.56, lang:'フランス語、ハイチ・クレオール語', gdpRank:18, gdpB:32.10, overview:'1804年に世界初の黒人共和国として独立を果たした国。独立記念の要塞群「国立史跡公園－シタデル、サンスーシ、ラミエ」が世界遺産。'},
   {id:340, code:'HN', ja:'ホンジュラス', en:'Honduras', capital:'テグシガルパ', lat:14.10, lng:-87.22, pop:11.01, lang:'スペイン語', gdpRank:16, gdpB:39.69, overview:'中米最大級のマヤ遺跡を持つ国。彫刻美術で知られる「マヤ遺跡コパン」（文化遺産）と、危機遺産に指定される熱帯雨林「リオ・プラタノ生物圏保護区」（自然遺産）が世界遺産。'},
   {id:388, code:'JM', ja:'ジャマイカ', en:'Jamaica', capital:'キングストン', lat:17.97, lng:-76.79, pop:2.75, lang:'英語', gdpRank:21, gdpB:22.31, overview:'レゲエとウサイン・ボルトを生んだ島国。山岳の生態系と逃亡奴隷の歴史を伝える「ブルー・ジョン・クロウ山脈」が世界遺産（複合遺産）。'},
@@ -217,9 +250,9 @@ const COUNTRIES = [
   {id:604, code:'PE', ja:'ペルー', en:'Peru', capital:'リマ', lat:-12.05, lng:-77.04, pop:34.41, lang:'スペイン語（ケチュア語、アイマラ語も公用語）', gdpRank:6, gdpB:341.03, overview:'かつてのインカ帝国の中心地。空中都市「マチュ・ピチュの歴史保護区」（複合遺産）や地上絵で有名な「ナスカとパルパの地上絵」が世界遺産。'},
   {id:659, code:'KN', ja:'セントクリストファー・ネーヴィス', en:'Saint Kitts and Nevis', capital:'バセテール', lat:17.30, lng:-62.72, pop:0.05, lang:'英語', gdpRank:31, gdpB:1.08, overview:'カリブ海で最も人口の少ない主権国家。要塞遺跡「ブリムストーン・ヒル要塞国立公園」が世界遺産。'},
   {id:662, code:'LC', ja:'セントルシア', en:'Saint Lucia', capital:'カストリーズ', lat:14.01, lng:-60.99, pop:0.18, lang:'英語', gdpRank:27, gdpB:2.65, overview:'火山性の尖峰が特徴的な島国。2つの尖塔状火山「ピトン管理地域」が世界遺産（自然遺産）。'},
-  {id:670, code:'VC', ja:'セントビンセント・グレナディーン', en:'Saint Vincent and the Grenadines', capital:'キングスタウン', lat:13.16, lng:-61.22, pop:0.11, lang:'英語', gdpRank:30, gdpB:1.18, overview:'32の島々からなる小さな島嶼国。世界遺産の登録はまだない。'},
+  {id:670, code:'VC', ja:'セントビンセント・グレナディーン', en:'Saint Vincent and the Grenadines', capital:'キングスタウン', lat:13.16, lng:-61.22, pop:0.11, lang:'英語', gdpRank:30, gdpB:1.18, overview:'32の島々からなる小さな島嶼国。'},
   {id:740, code:'SR', ja:'スリナム', en:'Suriname', capital:'パラマリボ', lat:5.87, lng:-55.17, pop:0.66, lang:'オランダ語', gdpRank:25, gdpB:4.66, overview:'南米で唯一オランダ語を公用語とする国。手つかずの熱帯雨林「中央スリナム自然保護区」と旧市街「パラマリボ歴史的市街地区」が世界遺産。'},
-  {id:780, code:'TT', ja:'トリニダード・トバゴ', en:'Trinidad and Tobago', capital:'ポートオブスペイン', lat:10.65, lng:-61.52, pop:1.44, lang:'英語', gdpRank:20, gdpB:25.93, overview:'カリビアン・カーニバルとスティールパン発祥の国。世界遺産の登録はまだない。'},
+  {id:780, code:'TT', ja:'トリニダード・トバゴ', en:'Trinidad and Tobago', capital:'ポートオブスペイン', lat:10.65, lng:-61.52, pop:1.44, lang:'英語', gdpRank:20, gdpB:25.93, overview:'カリビアン・カーニバルとスティールパン発祥の国。'},
   {id:858, code:'UY', ja:'ウルグアイ', en:'Uruguay', capital:'モンテビデオ', lat:-34.90, lng:-56.16, pop:3.49, lang:'スペイン語', gdpRank:13, gdpB:85.58, overview:'南米で最も安定した民主主義・高い生活水準を誇る国のひとつ。植民地時代の港町「コロニア・デル・サクラメント市街歴史地区」が世界遺産。'},
   {id:862, code:'VE', ja:'ベネズエラ', en:'Venezuela', capital:'カラカス', lat:10.48, lng:-66.90, pop:26.67, lang:'スペイン語', gdpRank:11, gdpB:99.66, overview:'世界最大級の原油埋蔵量を持つ国で、テーブルマウンテン（テプイ）が点在する秘境「カナイマ国立公園」が世界遺産。港町「コロとその港」は危機遺産に指定されている。'}
 ];
@@ -370,6 +403,10 @@ sortSelect.addEventListener('change', () => {
 
 // ===================== 地図 =====================
 const map = L.map('map', { scrollWheelZoom: false, zoomSnap: 0 }).setView(REGION_CENTER, REGION_ZOOM);
+
+// 画面回転・リサイズ（スマホの縦横切り替え等）で地図サイズを再計算
+window.addEventListener('resize', () => setTimeout(() => map.invalidateSize(), 200));
+window.addEventListener('orientationchange', () => setTimeout(() => map.invalidateSize(), 300));
 // ラベル無しの背景タイルを使用し、国名等の文字表示は全て日本語の独自ラベルで行う
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
   attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
@@ -495,7 +532,7 @@ fetch('https://unpkg.com/world-atlas@2/countries-50m.json')
 // ===================== カード描画 =====================
 function formatHeritage(countryId){
   const sites = HERITAGE_SITES.filter(s => s.country === countryId);
-  if(sites.length === 0) return '<span style="color:var(--muted);">世界遺産の登録はまだありません</span>';
+  if(sites.length === 0) return '';
   const legend = `<div style="font-size:10.5px;color:var(--muted);margin-bottom:6px;">🟢自然遺産　🟠文化遺産　🟣複合遺産</div>`;
   const list = sites.map(s => {
     const color = HERITAGE_TYPE_COLOR[s.type];
@@ -509,6 +546,8 @@ function formatHeritage(countryId){
 }
 
 function renderProfile(c){
+  const heritageHTML = formatHeritage(c.id);
+  const heritageRow = heritageHTML ? `<tr><td>世界遺産</td><td>${heritageHTML}</td></tr>` : '';
   profileCard.innerHTML = `
     <div class="p-header">
       <div class="flag-badge">${flagEmoji(c.code)}</div>
@@ -523,7 +562,7 @@ function renderProfile(c){
       <tr><td>公用語</td><td>${escapeHTML(c.lang)}</td></tr>
       <tr><td>GDP</td><td>${formatGDP(c)}</td></tr>
       <tr><td>概要</td><td>${escapeHTML(c.overview)}</td></tr>
-      <tr><td>世界遺産</td><td>${formatHeritage(c.id)}</td></tr>
+      ${heritageRow}
     </table>
   `;
 }

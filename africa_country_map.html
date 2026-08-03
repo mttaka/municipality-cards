@@ -55,6 +55,39 @@
   .layout{display:grid; grid-template-columns: 380px 1fr; gap:20px;}
   @media (max-width: 860px){ .layout{grid-template-columns:1fr;} }
 
+  /* スマホ横向き（ランドスケープ）時：1画面に収まるコンパクト2カラム表示 */
+  @media (max-height: 500px) and (orientation: landscape){
+    html, body{ height:100%; }
+    body{ display:flex; flex-direction:column; overflow:hidden; }
+    .hero{ padding:6px 12px; flex:0 0 auto; }
+    .hero .eyebrow, .hero p{ display:none; }
+    .hero h1{ font-size:14px; margin:0; }
+    main{ flex:1; min-height:0; display:flex; flex-direction:column; padding:6px 10px; overflow:hidden; }
+    .selector-bar{ flex:0 0 auto; padding:6px 8px; gap:6px; margin-bottom:6px; }
+    .selector-bar label{ display:none; }
+    select#sortSelect{ min-width:100px; font-size:11px; padding:5px 8px; flex:0 0 auto; }
+    select#countrySelect{ font-size:12px; padding:5px 8px; min-width:120px; }
+    .layout{ flex:1; min-height:0; display:grid; grid-template-columns:38% 1fr; gap:10px; }
+    .card{ min-height:0; overflow-y:auto; padding:10px; font-size:11px; }
+    .empty-state{ min-height:0; gap:6px; }
+    .empty-state .big{ font-size:22px; }
+    .empty-state p{ font-size:10px; }
+    .p-header{ gap:8px; margin-bottom:8px; }
+    .flag-badge{ font-size:20px; min-width:34px; height:32px; }
+    .p-name{ font-size:13px; }
+    .p-furi{ font-size:9px; }
+    .info-table{ font-size:10.5px; }
+    .info-table td{ padding:5px 3px; }
+    .info-table td:first-child{ width:52px; font-size:9px; padding-top:6px; }
+    .layout > div:last-child{ display:flex; flex-direction:column; min-height:0; }
+    #map{ flex:1; min-height:0; height:auto; }
+    .map-toolbar{ flex:0 0 auto; margin-top:4px; font-size:9px; gap:6px; }
+    .quiz-hint{ display:none; }
+    .map-legend{ flex:0 0 auto; margin-top:4px; font-size:8px; gap:5px; }
+    .map-legend span:last-child{ display:none; }
+    .map-note{ font-size:9px; padding:5px 8px; margin-top:4px; }
+  }
+
   .card{
     background:#fff; border:1px solid var(--line); border-radius:16px;
     padding:22px; min-height:460px;
@@ -194,29 +227,29 @@ const COUNTRIES = [
   {id:204, code:'BJ', ja:'ベナン', en:'Benin', capital:'ポルトノボ', lat:6.50, lng:2.62, pop:14.92, lang:'フランス語', gdpRank:24, gdpB:24.38, overview:'ヴードゥー教発祥の地とされ、かつて栄えたダホメ王国の history を今に伝える「アボメーの王宮群」が世界遺産に登録されている。'},
   {id:72, code:'BW', ja:'ボツワナ', en:'Botswana', capital:'ハボローネ', lat:-24.65, lng:25.91, pop:2.55, lang:'英語（セツワナ語が国語）', gdpRank:30, gdpB:19.53, overview:'ダイヤモンド産業に支えられた、アフリカでも屈指の安定した民主主義国。広大な湿地帯「オカバンゴ・デルタ」が世界遺産。'},
   {id:854, code:'BF', ja:'ブルキナファソ', en:'Burkina Faso', capital:'ワガドゥグー', lat:12.37, lng:-1.52, pop:24.10, lang:'フランス語', gdpRank:23, gdpB:27.14, overview:'西アフリカ内陸のサヘル地域に位置する国。金の産出が盛んで、古代の製鉄遺跡「ロロペニの遺跡群」が世界遺産に登録されている。'},
-  {id:108, code:'BI', ja:'ブルンジ', en:'Burundi', capital:'ギテガ', lat:-3.43, lng:29.93, pop:14.47, lang:'キルンジ語、フランス語、英語', gdpRank:41, gdpB:6.92, overview:'アフリカ大湖地域にある人口密度の高い小国。2019年に首都機能がブジュンブラからギテガへ移された。世界遺産の登録はまだない。'},
+  {id:108, code:'BI', ja:'ブルンジ', en:'Burundi', capital:'ギテガ', lat:-3.43, lng:29.93, pop:14.47, lang:'キルンジ語、フランス語、英語', gdpRank:41, gdpB:6.92, overview:'アフリカ大湖地域にある人口密度の高い小国。2019年に首都機能がブジュンブラからギテガへ移された。'},
   {id:132, code:'CV', ja:'カーボベルデ', en:'Cabo Verde', capital:'プライア', lat:14.93, lng:-23.51, pop:0.51, lang:'ポルトガル語', gdpRank:47, gdpB:3.08, overview:'西アフリカ沖の島しょ国。ヨーロッパ人が熱帯圏に築いた最古の植民都市のひとつ「シダーデ・ヴェーリャ」が世界遺産。'},
   {id:120, code:'CM', ja:'カメルーン', en:'Cameroon', capital:'ヤウンデ', lat:3.87, lng:11.52, pop:29.88, lang:'フランス語、英語', gdpRank:14, gdpB:59.28, overview:'砂漠から熱帯雨林、山岳、海岸まで多様な地形を持ち「ミニアフリカ」とも呼ばれる。熱帯林保護区「ジャー動物保護区」が世界遺産。'},
   {id:140, code:'CF', ja:'中央アフリカ', en:'Central African Republic', capital:'バンギ', lat:4.36, lng:18.56, pop:5.51, lang:'フランス語、サンゴ語', gdpRank:46, gdpB:3.19, overview:'内陸に位置し、長年の政情不安を抱える国のひとつ。サバンナの野生動物保護区「マノヴォ・グンダ・サンフローリス国立公園」は危機遺産に指定されている。'},
   {id:148, code:'TD', ja:'チャド', en:'Chad', capital:'ンジャメナ', lat:12.13, lng:15.06, pop:18.96, lang:'フランス語、アラビア語', gdpRank:26, gdpB:22.09, overview:'内陸国で、縮小が続く「チャド湖」が国名の由来。奇岩群が広がる「エネディ山地」が自然と文化の複合遺産として登録されている。'},
-  {id:174, code:'KM', ja:'コモロ', en:'Comoros', capital:'モロニ', lat:-11.70, lng:43.26, pop:0.91, lang:'コモロ語、アラビア語、フランス語', gdpRank:52, gdpB:1.61, overview:'モザンビーク海峡に浮かぶ火山島の国。イランイランなど香料作物の産地として知られる。世界遺産の登録はまだない。'},
+  {id:174, code:'KM', ja:'コモロ', en:'Comoros', capital:'モロニ', lat:-11.70, lng:43.26, pop:0.91, lang:'コモロ語、アラビア語、フランス語', gdpRank:52, gdpB:1.61, overview:'モザンビーク海峡に浮かぶ火山島の国。イランイランなど香料作物の産地として知られる。'},
   {id:178, code:'CG', ja:'コンゴ共和国', en:'Republic of the Congo', capital:'ブラザビル', lat:-4.27, lng:15.28, pop:6.49, lang:'フランス語', gdpRank:33, gdpB:15.59, overview:'産油国で、隣国コンゴ民主共和国と首都同士がコンゴ川を挟んで向かい合う。カメルーン・中央アフリカと共有する「サンガ川流域の3か国保護区」が世界遺産。'},
   {id:180, code:'CD', ja:'コンゴ民主共和国', en:'Democratic Republic of the Congo', capital:'キンシャサ', lat:-4.32, lng:15.31, pop:106.55, lang:'フランス語', gdpRank:11, gdpB:92.83, overview:'コンゴ盆地の広大な熱帯雨林と豊富な鉱物資源（コバルト等）を持つアフリカ有数の大国。ヴィルンガ国立公園など5つの世界遺産があり、多くが危機遺産に指定されている。'},
   {id:384, code:'CI', ja:'コートジボワール', en:'Côte d\u2019Ivoire', capital:'ヤムスクロ', lat:6.83, lng:-5.29, pop:32.90, lang:'フランス語', gdpRank:10, gdpB:98.89, overview:'世界最大のカカオ生産国。歴史的な港町「グラン・バッサム」や、ギニアと共有する「ニンバ山厳正自然保護区」が世界遺産。'},
-  {id:262, code:'DJ', ja:'ジブチ', en:'Djibouti', capital:'ジブチ', lat:11.59, lng:43.15, pop:1.06, lang:'フランス語、アラビア語', gdpRank:45, gdpB:4.38, overview:'紅海とアデン湾を結ぶ海上交通の要衝で、各国の軍事拠点が置かれる戦略的な小国。世界遺産の登録はまだない。'},
+  {id:262, code:'DJ', ja:'ジブチ', en:'Djibouti', capital:'ジブチ', lat:11.59, lng:43.15, pop:1.06, lang:'フランス語、アラビア語', gdpRank:45, gdpB:4.38, overview:'紅海とアデン湾を結ぶ海上交通の要衝で、各国の軍事拠点が置かれる戦略的な小国。'},
   {id:818, code:'EG', ja:'エジプト', en:'Egypt', capital:'カイロ', lat:30.04, lng:31.24, pop:107.90, lang:'アラビア語', gdpRank:2, gdpB:364.64, overview:'ナイル川流域に栄えた古代文明の国。ギザのピラミッド（メンフィスと周辺）、テーベ（ルクソール）、アブ・シンベル神殿など7件の世界遺産を持つ。'},
-  {id:226, code:'GQ', ja:'赤道ギニア', en:'Equatorial Guinea', capital:'マラボ', lat:3.75, lng:8.78, pop:1.64, lang:'スペイン語、フランス語、ポルトガル語', gdpRank:37, gdpB:12.48, overview:'アフリカで唯一スペイン語を公用語とする産油国。世界遺産の登録はまだない。'},
+  {id:226, code:'GQ', ja:'赤道ギニア', en:'Equatorial Guinea', capital:'マラボ', lat:3.75, lng:8.78, pop:1.64, lang:'スペイン語、フランス語、ポルトガル語', gdpRank:37, gdpB:12.48, overview:'アフリカで唯一スペイン語を公用語とする産油国。'},
   {id:232, code:'ER', ja:'エリトリア', en:'Eritrea', capital:'アスマラ', lat:15.34, lng:38.93, pop:'約367万人（国連推計、公式統計不足のため目安）', lang:'ティグリニャ語、アラビア語、英語（実務言語）', gdpRank:null, gdpB:null, overview:'紅海に面する国で、イタリア植民地時代のモダニズム建築が数多く残る首都「アスマラ」が世界遺産に登録されている。GDP統計はIMFに未収録。'},
-  {id:748, code:'SZ', ja:'エスワティニ', en:'Eswatini', capital:'ムババーネ', lat:-26.32, lng:31.14, pop:1.16, lang:'英語、スワティ語', gdpRank:44, gdpB:5.17, overview:'アフリカに残る唯一の絶対君主制国家（旧スワジランド）。世界遺産の登録はまだない。'},
+  {id:748, code:'SZ', ja:'エスワティニ', en:'Eswatini', capital:'ムババーネ', lat:-26.32, lng:31.14, pop:1.16, lang:'英語、スワティ語', gdpRank:44, gdpB:5.17, overview:'アフリカに残る唯一の絶対君主制国家（旧スワジランド）。'},
   {id:231, code:'ET', ja:'エチオピア', en:'Ethiopia', capital:'アディスアベバ', lat:9.03, lng:38.74, pop:110.60, lang:'アムハラ語（連邦の実務言語）', gdpRank:9, gdpB:109.11, overview:'アフリカでほぼ唯一、植民地支配を受けなかった国。岩窟教会群で有名な「ラリベラ」やアクスム遺跡など、アフリカで最も多い世界遺産件数を持つ国のひとつ。'},
   {id:266, code:'GA', ja:'ガボン', en:'Gabon', capital:'リーブルビル', lat:0.42, lng:9.45, pop:2.31, lang:'フランス語', gdpRank:28, gdpB:21.62, overview:'国土の85%が熱帯雨林に覆われる産油国。生態系と地形が評価された「ロペ・オカンダの景観」が世界遺産。'},
   {id:270, code:'GM', ja:'ガンビア', en:'Gambia', capital:'バンジュール', lat:13.45, lng:-16.58, pop:2.86, lang:'英語', gdpRank:50, gdpB:2.58, overview:'ガンビア川に沿った細長い国土を持つ、アフリカ本土最小の国。周辺国と共有する「セネガンビアの環状列石群」が世界遺産。'},
   {id:288, code:'GH', ja:'ガーナ', en:'Ghana', capital:'アクラ', lat:5.60, lng:-0.19, pop:35.06, lang:'英語', gdpRank:8, gdpB:114.71, overview:'金とカカオの産地で、1957年にサブサハラ・アフリカで最初に独立を果たした国。奴隷貿易の拠点だった「ケープコースト城」やアシャンティの伝統建築が世界遺産。'},
   {id:324, code:'GN', ja:'ギニア', en:'Guinea', capital:'コナクリ', lat:9.64, lng:-13.58, pop:15.80, lang:'フランス語', gdpRank:22, gdpB:27.22, overview:'ボーキサイト（アルミニウムの原料）の埋蔵量が世界最大級。コートジボワールと共有する「ニンバ山厳正自然保護区」が世界遺産。'},
-  {id:624, code:'GW', ja:'ギニアビサウ', en:'Guinea-Bissau', capital:'ビサウ', lat:11.86, lng:-15.60, pop:2.02, lang:'ポルトガル語', gdpRank:49, gdpB:2.65, overview:'ビジャゴス諸島などマングローブの島々が広がる西アフリカの小国。世界遺産の登録はまだない。'},
+  {id:624, code:'GW', ja:'ギニアビサウ', en:'Guinea-Bissau', capital:'ビサウ', lat:11.86, lng:-15.60, pop:2.02, lang:'ポルトガル語', gdpRank:49, gdpB:2.65, overview:'ビジャゴス諸島などマングローブの島々が広がる西アフリカの小国。'},
   {id:404, code:'KE', ja:'ケニア', en:'Kenya', capital:'ナイロビ', lat:-1.29, lng:36.82, pop:53.35, lang:'スワヒリ語、英語', gdpRank:7, gdpB:136.46, overview:'サファリ観光で世界的に知られる東アフリカの拠点国。トゥルカナ湖国立公園群やラム旧市街など複数の世界遺産を持つ。'},
-  {id:426, code:'LS', ja:'レソト', en:'Lesotho', capital:'マセル', lat:-29.31, lng:27.48, pop:2.37, lang:'セソト語、英語', gdpRank:48, gdpB:2.85, overview:'国土全体が南アフリカに囲まれた内陸国で、標高の高さから「天空の王国」と呼ばれる。世界遺産の登録はまだない。'},
-  {id:430, code:'LR', ja:'リベリア', en:'Liberia', capital:'モンロビア', lat:6.30, lng:-10.80, pop:5.73, lang:'英語', gdpRank:43, gdpB:5.22, overview:'解放された元奴隷たちによって1847年に建国された、アフリカ最古の共和国。世界遺産の登録はまだない。'},
+  {id:426, code:'LS', ja:'レソト', en:'Lesotho', capital:'マセル', lat:-29.31, lng:27.48, pop:2.37, lang:'セソト語、英語', gdpRank:48, gdpB:2.85, overview:'国土全体が南アフリカに囲まれた内陸国で、標高の高さから「天空の王国」と呼ばれる。'},
+  {id:430, code:'LR', ja:'リベリア', en:'Liberia', capital:'モンロビア', lat:6.30, lng:-10.80, pop:5.73, lang:'英語', gdpRank:43, gdpB:5.22, overview:'解放された元奴隷たちによって1847年に建国された、アフリカ最古の共和国。'},
   {id:434, code:'LY', ja:'リビア', en:'Libya', capital:'トリポリ', lat:32.89, lng:13.19, pop:7.46, lang:'アラビア語', gdpRank:17, gdpB:44.73, overview:'アフリカ最大級の石油埋蔵量を持つ北アフリカの国。ローマ時代の都市遺跡レプティス・マグナなど5件の世界遺産があるが、いずれも危機遺産に指定されている。'},
   {id:450, code:'MG', ja:'マダガスカル', en:'Madagascar', capital:'アンタナナリボ', lat:-18.88, lng:47.51, pop:31.44, lang:'マダガスカル語、フランス語', gdpRank:29, gdpB:19.56, overview:'世界第4位の面積を誇る島国で、キツネザルなど固有種の宝庫。「アツィナナナの雨林群」が世界遺産に登録されている。'},
   {id:454, code:'MW', ja:'マラウイ', en:'Malawi', capital:'リロングウェ', lat:-13.96, lng:33.79, pop:24.06, lang:'英語、チェワ語', gdpRank:34, gdpB:15.05, overview:'「アフリカの温かい心」と呼ばれる人懐こい国民性で知られる。淡水魚の多様性で有名な「マラウイ湖国立公園」が世界遺産。'},
@@ -229,13 +262,13 @@ const COUNTRIES = [
   {id:562, code:'NE', ja:'ニジェール', en:'Niger', capital:'ニアメ', lat:13.51, lng:2.11, pop:29.13, lang:'フランス語', gdpRank:27, gdpB:21.84, overview:'国土の大半をサハラ砂漠が占め、ウランの産出国として知られる。「W国立公園」や「アイルとテネレの自然保護区群」が世界遺産。'},
   {id:566, code:'NG', ja:'ナイジェリア', en:'Nigeria', capital:'アブジャ', lat:9.08, lng:7.40, pop:237.58, lang:'英語（ハウサ語・ヨルバ語・イボ語なども広く使用）', gdpRank:3, gdpB:290.49, overview:'アフリカ最大の人口を抱え、映画産業「ノリウッド」でも知られる大国。「スクル文化的景観」と聖なる森「オスン＝オソボの聖なる森」が世界遺産。'},
   {id:646, code:'RW', ja:'ルワンダ', en:'Rwanda', capital:'キガリ', lat:-1.94, lng:30.06, pop:14.16, lang:'キニヤルワンダ語、フランス語、英語、スワヒリ語', gdpRank:32, gdpB:15.97, overview:'「千の丘の国」と呼ばれる緑豊かな国。1994年の悲劇的な虐殺から著しい復興を遂げた。世界遺産の正式登録はまだなく、国立公園群が暫定リストに含まれる。'},
-  {id:678, code:'ST', ja:'サントメ・プリンシペ', en:'São Tomé and Príncipe', capital:'サントメ', lat:0.34, lng:6.73, pop:0.24, lang:'ポルトガル語', gdpRank:53, gdpB:0.98, overview:'ギニア湾に浮かぶ火山島の国で、アフリカ最小の人口。カカオの高級産地としても知られる。世界遺産の登録はまだない。'},
+  {id:678, code:'ST', ja:'サントメ・プリンシペ', en:'São Tomé and Príncipe', capital:'サントメ', lat:0.34, lng:6.73, pop:0.24, lang:'ポルトガル語', gdpRank:53, gdpB:0.98, overview:'ギニア湾に浮かぶ火山島の国で、アフリカ最小の人口。カカオの高級産地としても知られる。'},
   {id:686, code:'SN', ja:'セネガル', en:'Senegal', capital:'ダカール', lat:14.72, lng:-17.47, pop:19.17, lang:'フランス語', gdpRank:19, gdpB:37.12, overview:'アフリカ大陸最西端に位置する。奴隷貿易の記憶を伝える「ゴレ島」や渡り鳥の楽園「ジュジ国立鳥類保護区」が世界遺産。'},
   {id:690, code:'SC', ja:'セーシェル', en:'Seychelles', capital:'ビクトリア', lat:-4.62, lng:55.45, pop:0.13, lang:'セーシェル・クレオール語、英語、フランス語', gdpRank:51, gdpB:2.32, overview:'アフリカ最小の国土を持つインド洋の楽園。珊瑚礁の「アルダブラ環礁」とヤシの原生林「メイ渓谷自然保護区」が世界遺産。'},
-  {id:694, code:'SL', ja:'シエラレオネ', en:'Sierra Leone', capital:'フリータウン', lat:8.48, lng:-13.23, pop:8.82, lang:'英語', gdpRank:40, gdpB:7.71, overview:'ダイヤモンド産出国で、首都フリータウンは解放奴隷の入植地として建設された。世界遺産の登録はまだない。'},
-  {id:706, code:'SO', ja:'ソマリア', en:'Somalia', capital:'モガディシュ', lat:2.05, lng:45.32, pop:16.96, lang:'ソマリ語、アラビア語', gdpRank:36, gdpB:12.96, overview:'アフリカ大陸本土で最も長い海岸線を持つ「アフリカの角」の国。長年の政情不安が続いており、世界遺産の登録はまだない。'},
+  {id:694, code:'SL', ja:'シエラレオネ', en:'Sierra Leone', capital:'フリータウン', lat:8.48, lng:-13.23, pop:8.82, lang:'英語', gdpRank:40, gdpB:7.71, overview:'ダイヤモンド産出国で、首都フリータウンは解放奴隷の入植地として建設された。'},
+  {id:706, code:'SO', ja:'ソマリア', en:'Somalia', capital:'モガディシュ', lat:2.05, lng:45.32, pop:16.96, lang:'ソマリ語、アラビア語', gdpRank:36, gdpB:12.96, overview:'アフリカ大陸本土で最も長い海岸線を持つ「アフリカの角」の国。長年の政情不安が続いており、'},
   {id:710, code:'ZA', ja:'南アフリカ', en:'South Africa', capital:'プレトリア（行政首都）／ケープタウン（立法首都）', lat:-25.75, lng:28.19, pop:63.10, lang:'英語、ズールー語など12言語（2023年より手話も公用語）', gdpRank:1, gdpB:427.14, overview:'アフリカで最も工業化が進んだ経済大国で、G20の唯一のアフリカ加盟国。ロベン島、人類のゆりかご、テーブルマウンテンなど10件の世界遺産を持つ。'},
-  {id:728, code:'SS', ja:'南スーダン', en:'South Sudan', capital:'ジュバ', lat:4.85, lng:31.58, pop:12.19, lang:'英語', gdpRank:42, gdpB:5.73, overview:'2011年に独立した世界で最も新しい国。広大な湿地帯「スッド」が広がる。世界遺産の登録はまだない。'},
+  {id:728, code:'SS', ja:'南スーダン', en:'South Sudan', capital:'ジュバ', lat:4.85, lng:31.58, pop:12.19, lang:'英語', gdpRank:42, gdpB:5.73, overview:'2011年に独立した世界で最も新しい国。広大な湿地帯「スッド」が広がる。'},
   {id:729, code:'SD', ja:'スーダン', en:'Sudan', capital:'ハルツーム', lat:15.50, lng:32.56, pop:50.42, lang:'アラビア語、英語', gdpRank:18, gdpB:39.72, overview:'白ナイルと青ナイルが合流する国で、実はエジプトより多くのピラミッドを持つ。古代都市「メロエ島の考古遺跡群」が世界遺産。'},
   {id:834, code:'TZ', ja:'タンザニア', en:'Tanzania', capital:'ドドマ（法的首都）／ダルエスサラーム（経済的中心）', lat:-6.16, lng:35.75, pop:67.62, lang:'スワヒリ語、英語', gdpRank:12, gdpB:87.34, overview:'アフリカ最高峰キリマンジャロを擁し、セレンゲティ国立公園やンゴロンゴロ保全地域など7件の世界遺産を持つサファリ観光の大国。'},
   {id:768, code:'TG', ja:'トーゴ', en:'Togo', capital:'ロメ', lat:6.13, lng:1.22, pop:9.78, lang:'フランス語', gdpRank:39, gdpB:11.90, overview:'ギニア湾岸の細長い国土を持つ。バタマリバ族の泥の塔状住居群「クタマク」の文化的景観が世界遺産。'},
@@ -417,6 +450,10 @@ sortSelect.addEventListener('change', () => {
 
 // ===================== 地図 =====================
 const map = L.map('map', { scrollWheelZoom: false, zoomSnap: 0 }).setView(AFRICA_CENTER, AFRICA_ZOOM);
+
+// 画面回転・リサイズ（スマホの縦横切り替え等）で地図サイズを再計算
+window.addEventListener('resize', () => setTimeout(() => map.invalidateSize(), 200));
+window.addEventListener('orientationchange', () => setTimeout(() => map.invalidateSize(), 300));
 // ラベル無しの背景タイルを使用し、国名等の文字表示は全て日本語の独自ラベルで行う
 L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
   attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
@@ -542,7 +579,7 @@ fetch('https://unpkg.com/world-atlas@2/countries-50m.json')
 // ===================== カード描画 =====================
 function formatHeritage(countryId){
   const sites = HERITAGE_SITES.filter(s => s.country === countryId);
-  if(sites.length === 0) return '<span style="color:var(--muted);">世界遺産の登録はまだありません</span>';
+  if(sites.length === 0) return '';
   const legend = `<div style="font-size:10.5px;color:var(--muted);margin-bottom:6px;">🟢自然遺産　🟠文化遺産　🟣複合遺産</div>`;
   const list = sites.map(s => {
     const color = HERITAGE_TYPE_COLOR[s.type];
@@ -556,6 +593,8 @@ function formatHeritage(countryId){
 }
 
 function renderProfile(c){
+  const heritageHTML = formatHeritage(c.id);
+  const heritageRow = heritageHTML ? `<tr><td>世界遺産</td><td>${heritageHTML}</td></tr>` : '';
   profileCard.innerHTML = `
     <div class="p-header">
       <div class="flag-badge">${flagEmoji(c.code)}</div>
@@ -570,7 +609,7 @@ function renderProfile(c){
       <tr><td>公用語</td><td>${escapeHTML(c.lang)}</td></tr>
       <tr><td>GDP</td><td>${formatGDP(c)}</td></tr>
       <tr><td>概要</td><td>${escapeHTML(c.overview)}</td></tr>
-      <tr><td>世界遺産</td><td>${formatHeritage(c.id)}</td></tr>
+      ${heritageRow}
     </table>
   `;
 }
